@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/orange">
+
+    <ImageView
+        android:id="@+id/logo"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+
+        android:src="@drawable/alive_health_logo"
+        />
+
+    <GridView
+        android:id="@+id/courses_grid"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:numColumns="3"
+        android:verticalSpacing="10dp"
+        android:horizontalSpacing="10dp"
+        android:layout_below="@id/logo"
+        android:layout_margin="10dp"
+        android:drawSelectorOnTop="true"
+        android:gravity="center"/>
+
+    <Button
+        android:id="@+id/start_recovery_course"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="开始恢复课程"
+        android:layout_alignParentBottom="true"
+        android:theme="@style/Widget.MaterialComponents.Button.UnelevatedButton" />
+
+</RelativeLayout>

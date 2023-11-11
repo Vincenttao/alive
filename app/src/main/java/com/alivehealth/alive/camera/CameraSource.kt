@@ -7,18 +7,25 @@ import android.graphics.ImageFormat
 import android.graphics.Matrix
 import android.graphics.Rect
 import android.hardware.camera2.CameraCaptureSession
+import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
+import android.util.Log
+import android.view.Surface
 import android.view.SurfaceView
+import com.alivehealth.alive.VisualizationUtils
 import com.alivehealth.alive.YuvToRgbConverter
 import com.alivehealth.alive.data.Person
+import com.alivehealth.alive.ml.MoveNetMultiPose
 import com.alivehealth.alive.ml.PoseClassifier
 import com.alivehealth.alive.ml.PoseDetector
+import com.alivehealth.alive.ml.TrackerType
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.Timer
+import java.util.TimerTask
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -174,6 +181,96 @@ class CameraSource(
             }, imageReaderHandler)
         }
 
+    fun prepareCamera() {
+        for (cameraId in cameraManager.cameraIdList) {
+            val characteristics = cameraManager.getCameraCharacteristics(cameraId)
+
+            // We don't use a front facing camera in this sample.
+            val cameraDirection = characteristics.get(CameraCharacteristics.LENS_FACING)
+            if (cameraDirection != null &&
+                cameraDirection == CameraCharacteristics.LENS_FACING_FRONT
+            ) {
+                continue
+            }
+            this.cameraId = cameraId
+        }
+    }
+
+    fun setDetector(detector: PoseDetector) {
+        synchronized(lock) {
+            if (this.detector != null) {
+                this.detector?.close()
+                this.detector = null
+            }
+            this.detector = detector
+        }
+    }
+
+    fun setClassifier(classifier: PoseClassifier?) {
+        synchronized(lock) {
+            if (this.classifier != null) {
+                this.classifier?.close()
+                this.classifier = null
+            }
+            this.classifier = classifier
+        }
+    }
+
+    /**
+     * Set Tracker for Movenet MuiltiPose model.
+     */
+    fun setTracker(trackerType: TrackerType) {
+        isTrackerEnabled = trackerType != TrackerType.OFF
+        (this.detector as? MoveNetMultiPose)?.setTracker(trackerType)
+    }
+
+    fun resume() {
+        imageReaderThread = HandlerThread("imageReaderThread").apply { start() }
+        imageReaderHandler = Handler(imageReaderThread!!.looper)
+        fpsTimer = Timer()
+        fpsTimer?.scheduleAtFixedRate(
+            object : TimerTask() {
+                override fun run() {
+                    framesPerSecond = frameProcessedInOneSecondInterval
+                    frameProcessedInOneSecondInterval = 0
+                }
+            },
+            0,
+            1000
+        )
+    }
+
+    fun close() {
+        session?.close()
+        session = null
+        camera?.close()
+        camera = null
+        imageReader?.close()
+        imageReader = null
+        stopImageReaderThread()
+        detector?.close()
+        detector = null
+        classifier?.close()
+        classifier = null
+        fpsTimer?.cancel()
+        fpsTimer = null
+        frameProcessedInOneSecondInterval = 0
+        framesPerSecond = 0
+    }
+
+
+    private suspend fun createSession(targets: List<Surface>): CameraCaptureSession =
+        suspendCancellableCoroutine { cont ->
+            camera?.createCaptureSession(targets, object : CameraCaptureSession.StateCallback() {
+                override fun onConfigured(captureSession: CameraCaptureSession) =
+                    cont.resume(captureSession)
+
+                override fun onConfigureFailed(session: CameraCaptureSession) {
+                    cont.resumeWithException(Exception("Session error"))
+                }
+            }, null)
+        }
+
     private fun processImage(bitmap: Bitmap) {
         val persons = mutableListOf<Person>()
         var classificationResult: List<Pair<String, Float>>? = null
@@ -239,6 +336,17 @@ class CameraSource(
                 Rect(left, top, right, bottom), null
             )
             surfaceView.holder.unlockCanvasAndPost(canvas)
+        }
+    }
+
+    private fun stopImageReaderThread() {
+        imageReaderThread?.quitSafely()
+        try {
+            imageReaderThread?.join()
+            imageReaderThread = null
+            imageReaderHandler = null
+        } catch (e: InterruptedException) {
+            Log.d(TAG, e.message.toString())
         }
     }
 

@@ -49,7 +49,7 @@ class MotionDetectActivity : AppCompatActivity() {
      * 2 == MoveNet MultiPose model
      * 3 == PoseNet model
      **/
-    private var modelPos = 0
+    private var modelPos = 1
 
     /** 设定默认CPU为处理单元 */
     private var device = Device.CPU
@@ -69,8 +69,20 @@ class MotionDetectActivity : AppCompatActivity() {
 
     // cameraSource 可能为空，表示它可能没有被初始化。
     private var cameraSource: CameraSource? = null
-    private var isClassifyPose = false
+    private var isClassifyPose = true
 
+    /**
+     * 这段代码是与 Android 的新的权限请求模型相配合的，特别是在你的应用程序需要请求用户授权某个特定权限（
+     * 如相机、位置等）时启用。
+     * 在 Android 6.0（API 级别 23）及以上版本中，用户需要在运行时而不是在安装时授予权限。为
+     * 了请求权限，应用程序需要在合适的时机（通常是在用户使用某项功能之前）向用户明确地请求权限。
+     * 以下是触发此代码的典型情况：
+     * 1. 用户操作： 用户可能点击了一个按钮来拍照，而拍照功能需要相机权限。在这种情况下，你的应用会调用
+     * requestPermissionLauncher.launch(permission) 方法来请求权限，
+     * 其中 permission 是一个字符串，如 Manifest.permission.CAMERA。
+     * 2. 应用逻辑： 应用的流程可能需要某项权限才能继续。
+     * 例如，在应用启动时，如果应用的主要功能需要访问相机，它可能会自动请求相机权限。
+     */
     private val requestPermissionLauncher =
         registerForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -302,6 +314,11 @@ class MotionDetectActivity : AppCompatActivity() {
         )
     }
 
+    /**
+     * 这段代码的目的是根据条件选择合适的姿势检测器并配置其行为。最后，如果检测器和摄像头源都不为 null，
+     * 它会将这个检测器设置为摄像头源的当前检测器。这样做的好处是它避免了在处理可空对象时可能出现的
+     * NullPointerException。
+     */
     private fun createPoseEstimator() {
         // For MoveNet MultiPose, hide score and disable pose classifier as the model returns
         // multiple Person instances.
@@ -346,6 +363,11 @@ class MotionDetectActivity : AppCompatActivity() {
                 null
             }
         }
+        /*
+        Lambda 表达式：在这个表达式中，detector 是 poseDetector 的非空版本。然后再次使用安全调用操作符 ?.
+        来检查 cameraSource 是否为 null。如果不是，那么执行 cameraSource.setDetector(detector)，
+        将姿势检测器设置为摄像头源的检测器。
+         */
         poseDetector?.let { detector ->
             cameraSource?.setDetector(detector)
         }

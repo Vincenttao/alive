@@ -181,6 +181,7 @@ class CameraSource(
             }, imageReaderHandler)
         }
 
+    /*
     fun prepareCamera() {
         for (cameraId in cameraManager.cameraIdList) {
             val characteristics = cameraManager.getCameraCharacteristics(cameraId)
@@ -193,6 +194,22 @@ class CameraSource(
                 continue
             }
             this.cameraId = cameraId
+        }
+    }
+    */
+
+    fun prepareCamera() {
+        for (cameraId in cameraManager.cameraIdList) {
+            val characteristics = cameraManager.getCameraCharacteristics(cameraId)
+
+            // We don't use a front facing camera in this sample.
+            val cameraDirection = characteristics.get(CameraCharacteristics.LENS_FACING)
+            if (cameraDirection != null &&
+                cameraDirection == CameraCharacteristics.LENS_FACING_FRONT
+            ) {
+                this.cameraId = cameraId
+                break// 找到前置摄像头后，跳出循环
+            }
         }
     }
 

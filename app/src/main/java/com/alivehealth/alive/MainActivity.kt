@@ -1,5 +1,6 @@
 package com.alivehealth.alive
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.GridView
@@ -15,7 +16,10 @@ class MainActivity : AppCompatActivity() {
 
         val startButton: Button = findViewById(R.id.start_recovery_course)
         startButton.setOnClickListener {
-            // 这里添加启动恢复课程的代码
+            // 创建一个Intent来启动MotionDetectActivity
+            val intent = Intent(this, MotionDetectActivity::class.java)
+            // 启动活动
+            startActivity(intent)
         }
         val gridView: GridView = findViewById(R.id.courses_grid)
 

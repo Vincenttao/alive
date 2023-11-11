@@ -136,6 +136,7 @@ class CameraSource(
                 val rotateMatrix = Matrix()
                 // rotateMatrix.postRotate(90.0f)
                 rotateMatrix.postRotate(270.0f)
+                rotateMatrix.preScale(-1.0f, 1.0f) // 水平镜像翻转
 
                 val rotatedBitmap = Bitmap.createBitmap(
                     imageBitmap, 0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT,

@@ -135,7 +135,7 @@ class CameraSource(
                 // Create rotated version for portrait display
                 val rotateMatrix = Matrix()
                 // rotateMatrix.postRotate(90.0f)
-                rotateMatrix.postRotate(270.0f)
+                rotateMatrix.postRotate(90.0f)
                 rotateMatrix.preScale(-1.0f, 1.0f) // 水平镜像翻转
 
                 val rotatedBitmap = Bitmap.createBitmap(

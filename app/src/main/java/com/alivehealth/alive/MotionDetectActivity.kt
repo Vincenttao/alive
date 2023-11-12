@@ -152,7 +152,7 @@ class MotionDetectActivity : AppCompatActivity() {
         setContentView(R.layout.activity_motiondetect)
         // keep screen on while app is running
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        tvScore = findViewById(R.id.tvScore)
+        tvScore = findViewById(R.id.tvScore)//将一个object对象赋值给tvScore，这样将来修改tvScore就可以修改对象的值
         tvFPS = findViewById(R.id.tvFps)
         spnModel = findViewById(R.id.spnModel)
         spnDevice = findViewById(R.id.spnDevice)

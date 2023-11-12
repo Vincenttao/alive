@@ -54,7 +54,14 @@ class PoseClassifier(
 
 
     /**
-     * 输入的是识别后的用户姿态信息，然后再做二次处理
+     * 输入的是识别后的用户姿态信息，然后再做二次处理输出如下
+     * [
+     *     Pair("chair", 0.05),
+     *     Pair("cobra", 0.03),
+     *     Pair("dog", 0.02),
+     *     Pair("tree", 0.88),
+     *     Pair("warrior", 0.02)
+     * ]
      */
     fun classify(person: Person?): List<Pair<String, Float>> {
         // Preprocess the pose estimation result to a flat array

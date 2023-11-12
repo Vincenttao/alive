@@ -79,6 +79,7 @@ class CameraSource(
         /** Threshold for confidence score. */
         private const val MIN_CONFIDENCE = .2f
         private const val TAG = "Camera Source"
+        private const val SMOOTHING_FACTOR = 0.3f // 平滑因子
     }
     private val lock = Any() //进程锁
     private var detector: PoseDetector? = null //detector用来检测用户姿态点
@@ -86,6 +87,9 @@ class CameraSource(
     private var isTrackerEnabled = false
     private var yuvConverter: YuvToRgbConverter = YuvToRgbConverter(surfaceView.context)
     private lateinit var imageBitmap: Bitmap
+
+    private val scoreSmoother = ExponentialSmoothing(SMOOTHING_FACTOR)
+    private val labelSmoothers = mutableMapOf<String, ExponentialSmoothing>()
 
     /** Frame count that have been processed so far in an one second interval to calculate FPS. */
     private var fpsTimer: Timer? = null
@@ -290,6 +294,7 @@ class CameraSource(
             }, null)
         }
 
+    /*
     private fun processImage(bitmap: Bitmap) {
         val persons = mutableListOf<Person>()
         var classificationResult: List<Pair<String, Float>>? = null
@@ -315,6 +320,49 @@ class CameraSource(
         // if the model returns only one item, show that item's score.
         if (persons.isNotEmpty()) {
             listener?.onDetectedInfo(persons[0].score, classificationResult)
+        }
+        visualize(persons, bitmap)
+    }
+
+     */
+
+    private fun processImage(bitmap: Bitmap) {
+        val persons = mutableListOf<Person>()
+        var classificationResult: List<Pair<String, Float>>? = null
+        var smoothedScore = 0f  // 初始化 smoothedScore
+        var smoothedLabels: List<Pair<String, Float>>? = null  // 初始化 smoothedLabels
+
+        synchronized(lock) {
+            detector?.estimatePoses(bitmap)?.let {
+                persons.addAll(it)
+
+                // if the model only returns one item, allow running the Pose classifier.
+                if (persons.isNotEmpty()) {
+                    smoothedScore = scoreSmoother.addData(persons[0].score ?: 0f)
+
+                    classifier?.run {
+                        classificationResult = classify(persons[0])
+                    }
+                    smoothedLabels = classificationResult?.map { label ->
+                        label.first to labelSmoothers.getOrPut(label.first) {
+                            ExponentialSmoothing(
+                                SMOOTHING_FACTOR
+                            )
+                        }
+                            .addData(label.second)
+                    }
+                }
+            }
+        }
+        frameProcessedInOneSecondInterval++
+        if (frameProcessedInOneSecondInterval == 1) {
+            // send fps to view
+            listener?.onFPSListener(framesPerSecond)
+        }
+
+        // if the model returns only one item, show that item's score.
+        if (persons.isNotEmpty()) {
+            listener?.onDetectedInfo(smoothedScore, smoothedLabels)
         }
         visualize(persons, bitmap)
     }
@@ -366,6 +414,15 @@ class CameraSource(
             imageReaderHandler = null
         } catch (e: InterruptedException) {
             Log.d(TAG, e.message.toString())
+        }
+    }
+
+    class ExponentialSmoothing(val alpha: Float) {
+        private var smoothedValue: Float = 0.0f
+
+        fun addData(value: Float): Float {
+            smoothedValue = alpha * value + (1 - alpha) * smoothedValue
+            return smoothedValue
         }
     }
 

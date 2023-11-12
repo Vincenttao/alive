@@ -6,6 +6,7 @@ import android.app.Dialog
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Process
+import android.speech.tts.TextToSpeech
 import android.view.SurfaceView
 import android.view.View
 import android.view.WindowManager
@@ -32,12 +33,17 @@ import com.alivehealth.alive.ml.TrackerType
 import com.alivehealth.alive.ml.Type
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.LinkedList
+import java.util.Locale
 
 class MotionDetectActivity : AppCompatActivity() {
 
     // companion object 用于声明静态成员，类似于 Java 中的 static 字段。在这个例子中，它定义了一个字符串常量。
     companion object {
         private const val FRAGMENT_DIALOG = "dialog"
+        private const val TREE_POSE_THRESHOLD = 0.5f
+        private const val TREE_POSE_DURATION = 3000L // 3秒
+        private const val TREE_POSE_EXTENDED_DURATION = 5000L
     }
 
     /** A [SurfaceView] for camera preview.   */
@@ -67,9 +73,19 @@ class MotionDetectActivity : AppCompatActivity() {
     private lateinit var swClassification: SwitchCompat
     private lateinit var vClassificationOption: View
 
+    private lateinit var textToSpeech: TextToSpeech
+
     // cameraSource 可能为空，表示它可能没有被初始化。
     private var cameraSource: CameraSource? = null
     private var isClassifyPose = true
+
+    //下面的变量用于提示用户监测结果
+    private val treePoseSmoother = MovingAverage(10)
+    private var treePoseStartTime: Long = 0
+    private var isTreePoseStandardMet = false
+    private var isTreePoseCompleted = false
+
+
 
     /**
      * 这段代码是与 Android 的新的权限请求模型相配合的，特别是在你的应用程序需要请求用户授权某个特定权限（
@@ -167,6 +183,12 @@ class MotionDetectActivity : AppCompatActivity() {
         initSpinner()
         spnModel.setSelection(modelPos)
         swClassification.setOnCheckedChangeListener(setClassificationListener)
+
+        textToSpeech = TextToSpeech(this) { status ->
+            if (status != TextToSpeech.ERROR) {
+                textToSpeech.language = Locale.CHINESE
+            }
+        }
         if (!isCameraPermissionGranted()) {
             requestPermission()
         }
@@ -186,6 +208,11 @@ class MotionDetectActivity : AppCompatActivity() {
         cameraSource?.close()
         cameraSource = null
         super.onPause()
+    }
+
+    override fun onDestroy() {
+        textToSpeech.shutdown()
+        super.onDestroy()
     }
 
     // check if permission is granted or not.
@@ -226,6 +253,24 @@ class MotionDetectActivity : AppCompatActivity() {
                                     convertPoseLabels(if (it.size >= 3) it[2] else null)
                                 )
                             }
+                            val treeScore = poseLabels?.find { it.first == "tree" }?.second ?: 0f
+                            treePoseSmoother.add(treeScore)
+                            val avgTreeScore = treePoseSmoother.average()
+
+                            if (avgTreeScore >= TREE_POSE_THRESHOLD && !isTreePoseStandardMet) {
+                                treePoseStartTime = System.currentTimeMillis()
+                                isTreePoseStandardMet = true
+                                speak(getString(R.string.tree_pose_standard_met))
+                            } else if (isTreePoseStandardMet) {
+                                val elapsedTime = System.currentTimeMillis() - treePoseStartTime
+                                if (elapsedTime >= TREE_POSE_DURATION && !isTreePoseCompleted) {
+                                    isTreePoseCompleted = true
+                                    speak(getString(R.string.tree_pose_completed))
+                                } else if (elapsedTime < TREE_POSE_EXTENDED_DURATION && avgTreeScore < TREE_POSE_THRESHOLD) {
+                                    isTreePoseStandardMet = false
+                                    speak(getString(R.string.tree_pose_restart))
+                                }
+                            }
                         }
 
                     }).apply {
@@ -238,6 +283,25 @@ class MotionDetectActivity : AppCompatActivity() {
             }
             createPoseEstimator()
         }
+    }
+
+    class MovingAverage(private val size: Int) {
+        private val values = LinkedList<Float>()
+
+        fun add(value: Float) {
+            if (values.size == size) {
+                values.poll()
+            }
+            values.add(value)
+        }
+
+        fun average(): Float {
+            return if (values.isEmpty()) 0f else values.sum() / values.size
+        }
+    }
+
+    private fun speak(text: String) {
+        textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
     }
 
     private fun convertPoseLabels(pair: Pair<String, Float>?): String {

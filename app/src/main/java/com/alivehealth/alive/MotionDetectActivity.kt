@@ -35,6 +35,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.LinkedList
 import java.util.Locale
+import kotlin.math.roundToInt
 
 class MotionDetectActivity : AppCompatActivity() {
 
@@ -74,6 +75,9 @@ class MotionDetectActivity : AppCompatActivity() {
     private lateinit var vClassificationOption: View
 
     private lateinit var textToSpeech: TextToSpeech
+
+    private lateinit var scoreTextView: TextView
+
 
     // cameraSource 可能为空，表示它可能没有被初始化。
     private var cameraSource: CameraSource? = null
@@ -184,6 +188,9 @@ class MotionDetectActivity : AppCompatActivity() {
         spnModel.setSelection(modelPos)
         swClassification.setOnCheckedChangeListener(setClassificationListener)
 
+        scoreTextView = findViewById(R.id.scoreTextView)
+
+
         textToSpeech = TextToSpeech(this) { status ->
             if (status != TextToSpeech.ERROR) {
                 textToSpeech.language = Locale.CHINESE
@@ -253,9 +260,12 @@ class MotionDetectActivity : AppCompatActivity() {
                                     convertPoseLabels(if (it.size >= 3) it[2] else null)
                                 )
                             }
+                            //计算tree姿势的得分
                             val treeScore = poseLabels?.find { it.first == "tree" }?.second ?: 0f
                             treePoseSmoother.add(treeScore)
                             val avgTreeScore = treePoseSmoother.average()
+                            val roundTreeScore = (avgTreeScore*100).roundToInt()
+                            scoreTextView.text = roundTreeScore.toString()
 
                             if (avgTreeScore >= TREE_POSE_THRESHOLD && !isTreePoseStandardMet) {
                                 treePoseStartTime = System.currentTimeMillis()

@@ -77,6 +77,9 @@ class MotionDetectActivity : AppCompatActivity() {
     private lateinit var textToSpeech: TextToSpeech
 
     private lateinit var scoreTextView: TextView
+    private lateinit var courseCode: String
+
+
 
 
     // cameraSource 可能为空，表示它可能没有被初始化。
@@ -122,6 +125,7 @@ class MotionDetectActivity : AppCompatActivity() {
             }
         }
 
+    /*
     private var changeModelListener = object : AdapterView.OnItemSelectedListener {
         override fun onNothingSelected(parent: AdapterView<*>?) {
             // ... 实现了 onNothingSelected 和 onItemSelected 方法，用于处理模型更改。
@@ -147,6 +151,9 @@ class MotionDetectActivity : AppCompatActivity() {
         }
     }
 
+     */
+
+    /*
     private var changeTrackerListener = object : AdapterView.OnItemSelectedListener {
         override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
             changeTracker(position)
@@ -157,12 +164,17 @@ class MotionDetectActivity : AppCompatActivity() {
         }
     }
 
+     */
+
+    /*
     private var setClassificationListener =
         CompoundButton.OnCheckedChangeListener { _, isChecked ->
             showClassificationResult(isChecked)
             isClassifyPose = isChecked
             isPoseClassifier()
         }
+
+     */
 
 
 
@@ -172,13 +184,15 @@ class MotionDetectActivity : AppCompatActivity() {
         setContentView(R.layout.activity_motiondetect)
         // keep screen on while app is running
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        /*
         tvScore = findViewById(R.id.tvScore)//将一个object对象赋值给tvScore，这样将来修改tvScore就可以修改对象的值
         tvFPS = findViewById(R.id.tvFps)
         spnModel = findViewById(R.id.spnModel)
         spnDevice = findViewById(R.id.spnDevice)
         spnTracker = findViewById(R.id.spnTracker)
         vTrackerOption = findViewById(R.id.vTrackerOption)
-        surfaceView = findViewById(R.id.surfaceView)
+
         tvClassificationValue1 = findViewById(R.id.tvClassificationValue1)
         tvClassificationValue2 = findViewById(R.id.tvClassificationValue2)
         tvClassificationValue3 = findViewById(R.id.tvClassificationValue3)
@@ -188,7 +202,16 @@ class MotionDetectActivity : AppCompatActivity() {
         spnModel.setSelection(modelPos)
         swClassification.setOnCheckedChangeListener(setClassificationListener)
 
+         */
+
+        surfaceView = findViewById(R.id.surfaceView)
+
         scoreTextView = findViewById(R.id.scoreTextView)
+
+        courseCode = intent.getStringExtra("COURSE_CODE") ?: ""//接受从MainActivity传递过来的课程参数
+
+        //姿势检测需要的赋值
+
 
 
         textToSpeech = TextToSpeech(this) { status ->
@@ -238,13 +261,14 @@ class MotionDetectActivity : AppCompatActivity() {
                 cameraSource =
                     CameraSource(surfaceView, object : CameraSource.CameraSourceListener {
                         override fun onFPSListener(fps: Int) {
-                            tvFPS.text = getString(R.string.tfe_pe_tv_fps, fps)
+                            //tvFPS.text = getString(R.string.tfe_pe_tv_fps, fps)
                         }
 
                         override fun onDetectedInfo(
                             personScore: Float?,
                             poseLabels: List<Pair<String, Float>>?
                         ) {
+                            /*
                             tvScore.text = getString(R.string.tfe_pe_tv_score, personScore ?: 0f)
                             poseLabels?.sortedByDescending { it.second }?.let {
                                 tvClassificationValue1.text = getString(
@@ -260,23 +284,30 @@ class MotionDetectActivity : AppCompatActivity() {
                                     convertPoseLabels(if (it.size >= 3) it[2] else null)
                                 )
                             }
-                            //计算tree姿势的得分
-                            val treeScore = poseLabels?.find { it.first == "tree" }?.second ?: 0f
-                            treePoseSmoother.add(treeScore)
+
+                             */
+
+                            //计算姿势的得分
+                            val poseScore = poseLabels?.find { it.first == courseCode }?.second ?: 0f
+                            treePoseSmoother.add(poseScore)
                             val avgTreeScore = treePoseSmoother.average()
                             val roundTreeScore = (avgTreeScore*100).roundToInt()
                             scoreTextView.text = roundTreeScore.toString()
 
-                            if (avgTreeScore >= TREE_POSE_THRESHOLD && !isTreePoseStandardMet) {
+                            val poseDuration = resources.getInteger(R.integer.pose_duration).toLong()
+                            val poseExtendedDuration = resources.getInteger(R.integer.pose_extended_duration).toLong()
+                            val poseThreshold = resources.getString(R.string.pose_threshold).toFloat()
+
+                            if (avgTreeScore >= poseThreshold && !isTreePoseStandardMet) {
                                 treePoseStartTime = System.currentTimeMillis()
                                 isTreePoseStandardMet = true
                                 speak(getString(R.string.tree_pose_standard_met))
                             } else if (isTreePoseStandardMet) {
                                 val elapsedTime = System.currentTimeMillis() - treePoseStartTime
-                                if (elapsedTime >= TREE_POSE_DURATION && !isTreePoseCompleted) {
+                                if (elapsedTime >= poseDuration && !isTreePoseCompleted) {
                                     isTreePoseCompleted = true
                                     speak(getString(R.string.tree_pose_completed))
-                                } else if (elapsedTime < TREE_POSE_EXTENDED_DURATION && avgTreeScore < TREE_POSE_THRESHOLD) {
+                                } else if (elapsedTime < poseExtendedDuration && avgTreeScore < poseThreshold) {
                                     isTreePoseStandardMet = false
                                     speak(getString(R.string.tree_pose_restart))
                                 }
@@ -310,9 +341,12 @@ class MotionDetectActivity : AppCompatActivity() {
         }
     }
 
+
+
     private fun speak(text: String) {
         textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
     }
+
 
     private fun convertPoseLabels(pair: Pair<String, Float>?): String {
         if (pair == null) return "empty"
@@ -323,6 +357,7 @@ class MotionDetectActivity : AppCompatActivity() {
         cameraSource?.setClassifier(if (isClassifyPose) PoseClassifier.create(this) else null)
     }
 
+    /*
     // Initialize spinners to let user select model/accelerator/tracker.
     private fun initSpinner() {
         ArrayAdapter.createFromResource(
@@ -388,6 +423,8 @@ class MotionDetectActivity : AppCompatActivity() {
         )
     }
 
+     */
+
     /**
      * 这段代码的目的是根据条件选择合适的姿势检测器并配置其行为。最后，如果检测器和摄像头源都不为 null，
      * 它会将这个检测器设置为摄像头源的当前检测器。这样做的好处是它避免了在处理可空对象时可能出现的
@@ -399,27 +436,27 @@ class MotionDetectActivity : AppCompatActivity() {
         val poseDetector = when (modelPos) {
             0 -> {
                 // MoveNet Lightning (SinglePose)
-                showPoseClassifier(true)
-                showDetectionScore(true)
-                showTracker(false)
+                //showPoseClassifier(true)
+                //showDetectionScore(true)
+                //showTracker(false)
                 MoveNet.create(this, device, ModelType.Lightning)
             }
             1 -> {
                 // MoveNet Thunder (SinglePose)
-                showPoseClassifier(true)
-                showDetectionScore(true)
-                showTracker(false)
+                //showPoseClassifier(true)
+                //showDetectionScore(true)
+                //showTracker(false)
                 MoveNet.create(this, device, ModelType.Thunder)
             }
             2 -> {
                 // MoveNet (Lightning) MultiPose
-                showPoseClassifier(false)
-                showDetectionScore(false)
+                //showPoseClassifier(false)
+                //showDetectionScore(false)
                 // Movenet MultiPose Dynamic does not support GPUDelegate
-                if (device == Device.GPU) {
-                    showToast(getString(R.string.tfe_pe_gpu_error))
-                }
-                showTracker(true)
+                //if (device == Device.GPU) {
+                    //showToast(getString(R.string.tfe_pe_gpu_error))
+                //}
+                //showTracker(true)
                 MoveNetMultiPose.create(
                     this,
                     device,
@@ -428,9 +465,9 @@ class MotionDetectActivity : AppCompatActivity() {
             }
             3 -> {
                 // PoseNet (SinglePose)
-                showPoseClassifier(true)
-                showDetectionScore(true)
-                showTracker(false)
+                //showPoseClassifier(true)
+                //showDetectionScore(true)
+                //showTracker(false)
                 PoseNet.create(this, device)
             }
             else -> {
@@ -447,6 +484,7 @@ class MotionDetectActivity : AppCompatActivity() {
         }
     }
 
+    /*
     // Show/hide the pose classification option.
     private fun showPoseClassifier(isVisible: Boolean) {
         vClassificationOption.visibility = if (isVisible) View.VISIBLE else View.GONE
@@ -480,6 +518,8 @@ class MotionDetectActivity : AppCompatActivity() {
             spnTracker.setSelection(0)
         }
     }
+
+     */
 
     private fun requestPermission() {
         when (PackageManager.PERMISSION_GRANTED) {

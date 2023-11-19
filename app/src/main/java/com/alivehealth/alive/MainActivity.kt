@@ -23,13 +23,20 @@ class MainActivity : AppCompatActivity() {
         }
         val gridView: GridView = findViewById(R.id.courses_grid)
 
-        val courses = arrayOf("课程1", "课程2", "课程3", "课程4", "课程5", "课程6", "课程7", "课程8", "课程9")
+        val courses = arrayOf("瑜伽姿势tree", "课程2", "课程3", "课程4", "课程5", "课程6", "课程7", "课程8", "课程9")
+        val courseCodes = arrayOf("tree", "sun", "moon", "tree","tree","tree","tree","tree","tree")
         val adapter = GridItemAdapter(this, courses)
 
         gridView.adapter = adapter
 
         gridView.setOnItemClickListener { _, _, position, _ ->
             Toast.makeText(this, "点击了: ${courses[position]}", Toast.LENGTH_SHORT).show()
+            // 创建一个Intent来启动MotionDetectActivity
+            val intent = Intent(this, MotionDetectActivity::class.java)
+            // 使用 putExtra 方法将对应的课程代码传递给MotionDetectActivity
+            intent.putExtra("COURSE_CODE", courseCodes[position])
+            // 启动活动
+            startActivity(intent)
         }
     }
 }

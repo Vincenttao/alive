@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Process
 import android.speech.tts.TextToSpeech
+import android.util.Log
 import android.view.SurfaceView
 import android.view.WindowManager
 import android.widget.TextView
@@ -26,6 +27,7 @@ import com.alivehealth.alive.ml.PoseNet
 import com.alivehealth.alive.ml.Type
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.xmlpull.v1.XmlPullParser
 import java.util.LinkedList
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -54,8 +56,8 @@ class MotionDetectActivity : AppCompatActivity() {
     // 以下各个 lateinit 变量是 UI 组件的声明，它们也会在之后被初始化。保留后续处理
 
     private lateinit var textToSpeech: TextToSpeech
-
     private lateinit var scoreTextView: TextView
+    private lateinit var poseCountTextView: TextView
     private lateinit var courseCode: String
 
 
@@ -65,13 +67,18 @@ class MotionDetectActivity : AppCompatActivity() {
     private var cameraSource: CameraSource? = null
     private var isClassifyPose = true
 
-    //下面的变量用于提示用户监测结果
+    //下面的变量用计算用户锻炼姿势监测结果
     private val poseSmoother = MovingAverage(10)
     private var poseStartTime: Long = 0
     private var poseLowScoreStartTime = 0L
     private var isPoseStandardMet = false
     private var isPoseCompleted = false
     private var poseCount = 0
+
+    //课程信息的数据类
+    data class Pose(val name: String, val count: Int)
+    data class Rest(val duration: Long)
+    data class Course(val id: String, val elements: List<Any>)//这个类用于存储一个完整课程的所有信息，包括课程的唯一标识和构成课程的各个元素（即姿势和休息时间）。
 
 
 
@@ -118,12 +125,19 @@ class MotionDetectActivity : AppCompatActivity() {
         surfaceView = findViewById(R.id.surfaceView)
 
         scoreTextView = findViewById(R.id.scoreTextView)
+        poseCountTextView = findViewById(R.id.poseCountTextView)
 
         courseCode = intent.getStringExtra("COURSE_CODE") ?: ""//接受从MainActivity传递过来的课程参数
 
-        //姿势检测需要的赋值
+        val course = parseCourse(courseCode)
 
+        if (course != null) {
+            logCourseDetails(course)
+        } else {
+            Log.d("CourseDetails", "No course found with the code: $courseCode")
+        }
 
+        Log.d("course", "Parsed pose: $course")
 
         textToSpeech = TextToSpeech(this) { status ->
             if (status != TextToSpeech.ERROR) {
@@ -133,7 +147,64 @@ class MotionDetectActivity : AppCompatActivity() {
         if (!isCameraPermissionGranted()) {
             requestPermission()
         }
+
     }
+
+    private fun parseCourse(courseCode: String): Course? {
+        val parser = resources.getXml(R.xml.courses)
+        var eventType = parser.eventType
+        var currentCourse: Course? = null
+        var currentElements: MutableList<Any>? = null
+
+        while (eventType != XmlPullParser.END_DOCUMENT) {
+            when (eventType) {
+                XmlPullParser.START_TAG -> when (parser.name) {
+                    "course" -> {
+                        val id = parser.getAttributeValue(null, "id")
+                        if (id == courseCode) {
+                            currentElements = mutableListOf()
+                            currentCourse = Course(id, currentElements)
+                        }
+                    }
+                    "pose" -> if (currentCourse != null) {
+                        currentElements?.add(
+                            Pose(
+                                parser.getAttributeValue(null, "name"),
+                                parser.getAttributeValue(null, "count").toInt()
+                            )
+                        )
+                    }
+                    "rest" -> if (currentCourse != null) {
+                        currentElements?.add(
+                            Rest(
+                                parser.getAttributeValue(null, "duration").toLong()
+                            )
+                        )
+                    }
+                }
+                XmlPullParser.END_TAG -> if (parser.name == "course" && currentCourse != null) {
+                    return currentCourse
+                }
+            }
+            eventType = parser.next()
+        }
+
+        return null // 如果没有找到匹配的课程，返回 null
+    }
+
+    private fun logCourseDetails(course: Course) {
+        val courseDetails = buildString {
+            append("Course ID: ${course.id}\n")
+            course.elements.forEach { element ->
+                when (element) {
+                    is Pose -> append("Pose: ${element.name}, Count: ${element.count}\n")
+                    is Rest -> append("Rest: ${element.duration}ms\n")
+                }
+            }
+        }
+        Log.d("CourseDetails", courseDetails)
+    }
+
 
     override fun onStart() {
         super.onStart()
@@ -185,6 +256,7 @@ class MotionDetectActivity : AppCompatActivity() {
                             val avgScore = poseSmoother.average()
                             val roundScore = (avgScore*100).roundToInt()
                             scoreTextView.text = roundScore.toString()
+                            poseCountTextView.text = poseCount.toString()
 
 
 
@@ -203,7 +275,7 @@ class MotionDetectActivity : AppCompatActivity() {
                                 if (elapsedTime >= poseDuration && !isPoseCompleted) {
                                     isPoseCompleted = true
                                     poseCount++ //姿势动作加一
-                                    speak(getString(R.string.pose_completed)+ "完成了 $poseCount 次")
+                                    speak("完成了 $poseCount 次")
                                 } else if (avgScore < poseThreshold) {
                                     if (poseLowScoreStartTime == 0L) {
                                         poseLowScoreStartTime = System.currentTimeMillis()

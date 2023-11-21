@@ -36,10 +36,24 @@
         android:gravity="center"
         android:background="#AA000000"
         android:padding="16dp"
-        android:text="得分"
+        android:text="姿势得分"
         android:textColor="@android:color/white"
         android:textSize="72sp"
         android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/poseCountTextView"
+            android:layout_width="match_parent"
+            android:layout_height="160dp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:layout_below="@id/scoreTextView"
+            android:background="#AA000000"
+            android:padding="16dp"
+            android:text="计数开始"
+            android:textColor="@android:color/white"
+            android:textSize="72sp"
+            android:textStyle="bold" />
 
     </RelativeLayout>
 

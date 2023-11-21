@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<courses>
+    <course id="course1">
+        <pose name="tree" count="5" />
+        <rest duration="10000" />
+        <pose name="chair" count="10" />
+    </course>
+    <course id="course2">
+        <pose name="warrior" count="4" />
+        <rest duration="5000" />
+        <pose name="downwardDog" count="8" />
+    </course>
+    <!-- 可以继续添加更多的课程 -->
+</courses>

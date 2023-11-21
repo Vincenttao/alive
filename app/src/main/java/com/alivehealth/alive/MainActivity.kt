@@ -24,7 +24,7 @@ class MainActivity : AppCompatActivity() {
         val gridView: GridView = findViewById(R.id.courses_grid)
 
         val courses = arrayOf("瑜伽姿势tree", "课程2", "课程3", "课程4", "课程5", "课程6", "课程7", "课程8", "课程9")
-        val courseCodes = arrayOf("tree", "sun", "moon", "tree","tree","tree","tree","tree","tree")
+        val courseCodes = arrayOf("course1", "sun", "moon", "tree","tree","tree","tree","tree","tree")
         val adapter = GridItemAdapter(this, courses)
 
         gridView.adapter = adapter

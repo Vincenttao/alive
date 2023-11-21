@@ -1,6 +1,6 @@
 <!-- res/values/pose.xml -->
 <resources>
     <integer name="pose_duration">3000</integer> <!-- 姿势持续时间，单位：毫秒 -->
-    <integer name="pose_extended_duration">5000</integer> <!-- 扩展的姿势持续时间，单位：毫秒 -->
+    <integer name="pose_extended_duration">1000</integer> <!-- 错误持续持续时间小于这个数值，不计入，单位：毫秒 -->
     <string name="pose_threshold">0.7</string> <!-- 姿势的阈值 -->
 </resources>

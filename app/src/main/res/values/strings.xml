@@ -17,9 +17,9 @@
     <string name="tfe_pe_tv_pose_classification">姿势分类</string>
     <string name="tfe_pe_tv_tracking">跟踪器: </string>
     <string name="tfe_pe_gpu_error">Movenet MultiPose不支持GPU. 继续使用CPU.</string>
-    <string name="tree_pose_standard_met">已经做到标准姿势，请坚持</string>
-    <string name="tree_pose_completed">坚持了3秒，非常不错，本姿势锻炼结束</string>
-    <string name="tree_pose_restart">请重新开始</string>
+    <string name="pose_standard_met">已经做到标准姿势，请坚持</string>
+    <string name="pose_completed">本姿势锻炼完毕</string>
+    <string name="pose_restart">请重新开始</string>
     <string-array name="tfe_pe_models_array">
         <item>Movenet Lightning</item>
         <item>Movenet Thunder</item>

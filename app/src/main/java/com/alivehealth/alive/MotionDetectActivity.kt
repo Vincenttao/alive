@@ -26,6 +26,7 @@ import com.alivehealth.alive.ml.PoseClassifier
 import com.alivehealth.alive.ml.PoseNet
 import com.alivehealth.alive.ml.Type
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.xmlpull.v1.XmlPullParser
 import java.util.LinkedList
@@ -33,6 +34,8 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 class MotionDetectActivity : AppCompatActivity() {
+
+    private val TAG="测试输出"
 
     // companion object 用于声明静态成员，类似于 Java 中的 static 字段。在这个例子中，它定义了一个字符串常量。
     companion object {
@@ -63,6 +66,8 @@ class MotionDetectActivity : AppCompatActivity() {
 
 
 
+
+
     // cameraSource 可能为空，表示它可能没有被初始化。
     private var cameraSource: CameraSource? = null
     private var isClassifyPose = true
@@ -73,13 +78,16 @@ class MotionDetectActivity : AppCompatActivity() {
     private var poseLowScoreStartTime = 0L
     private var isPoseStandardMet = false
     private var isPoseCompleted = false
-    private var poseCount = 0
+    private var currentElementIndex: Int = 0
+    private var posePerformCount: Int = 0
+
 
     //课程信息的数据类
     data class Pose(val name: String, val count: Int)
     data class Rest(val duration: Long)
     data class Course(val id: String, val elements: List<Any>)//这个类用于存储一个完整课程的所有信息，包括课程的唯一标识和构成课程的各个元素（即姿势和休息时间）。
 
+    private var course: Course? = null
 
 
 
@@ -123,21 +131,15 @@ class MotionDetectActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         surfaceView = findViewById(R.id.surfaceView)
-
         scoreTextView = findViewById(R.id.scoreTextView)
         poseCountTextView = findViewById(R.id.poseCountTextView)
 
         courseCode = intent.getStringExtra("COURSE_CODE") ?: ""//接受从MainActivity传递过来的课程参数
 
-        val course = parseCourse(courseCode)
+        course = parseCourse(courseCode)
 
-        if (course != null) {
-            logCourseDetails(course)
-        } else {
-            Log.d("CourseDetails", "No course found with the code: $courseCode")
-        }
 
-        Log.d("course", "Parsed pose: $course")
+        Log.d(TAG,"Parsed pose: $course")
 
         textToSpeech = TextToSpeech(this) { status ->
             if (status != TextToSpeech.ERROR) {
@@ -192,22 +194,12 @@ class MotionDetectActivity : AppCompatActivity() {
         return null // 如果没有找到匹配的课程，返回 null
     }
 
-    private fun logCourseDetails(course: Course) {
-        val courseDetails = buildString {
-            append("Course ID: ${course.id}\n")
-            course.elements.forEach { element ->
-                when (element) {
-                    is Pose -> append("Pose: ${element.name}, Count: ${element.count}\n")
-                    is Rest -> append("Rest: ${element.duration}ms\n")
-                }
-            }
-        }
-        Log.d("CourseDetails", courseDetails)
-    }
+
 
 
     override fun onStart() {
         super.onStart()
+        Log.d(TAG,"onStart启动")
         openCamera()
     }
 
@@ -238,6 +230,7 @@ class MotionDetectActivity : AppCompatActivity() {
 
     // open camera
     private fun openCamera() {
+        Log.d(TAG,"OpenCamera ON")
         if (isCameraPermissionGranted()) {
             if (cameraSource == null) {
                 cameraSource =
@@ -250,58 +243,110 @@ class MotionDetectActivity : AppCompatActivity() {
                             personScore: Float?,
                             poseLabels: List<Pair<String, Float>>?
                         ) {
-                            //计算courseCode姿势的得分
-                            val poseScore = poseLabels?.find { it.first == courseCode }?.second ?: 0f
-                            poseSmoother.add(poseScore)
-                            val avgScore = poseSmoother.average()
-                            val roundScore = (avgScore*100).roundToInt()
-                            scoreTextView.text = roundScore.toString()
-                            poseCountTextView.text = poseCount.toString()
-
-
+                            Log.d(TAG,"onDetectedInfo ON")
 
                             //计数逻辑
                             val poseDuration = resources.getInteger(R.integer.pose_duration).toLong()
                             val poseExtendedDuration = resources.getInteger(R.integer.pose_extended_duration).toLong()
                             val poseThreshold = resources.getString(R.string.pose_threshold).toFloat()
 
-                            if (avgScore >= poseThreshold && !isPoseStandardMet) {
-                                poseStartTime = System.currentTimeMillis()
-                                isPoseStandardMet = true
-                                isPoseCompleted = false
-                                speak(getString(R.string.pose_standard_met))
-                            } else if (isPoseStandardMet) {
-                                val elapsedTime = System.currentTimeMillis() - poseStartTime
-                                if (elapsedTime >= poseDuration && !isPoseCompleted) {
-                                    isPoseCompleted = true
-                                    poseCount++ //姿势动作加一
-                                    speak("完成了 $poseCount 次")
-                                } else if (avgScore < poseThreshold) {
-                                    if (poseLowScoreStartTime == 0L) {
-                                        poseLowScoreStartTime = System.currentTimeMillis()
-                                    }
 
-                                    if (System.currentTimeMillis() - poseLowScoreStartTime >= poseExtendedDuration){
-                                        isPoseStandardMet = false
+                            //课程判断逻辑
+                            fun performPose(pose: Pose) {
+                                Log.d(TAG, "performPose ON")
+                                val poseScore =
+                                    poseLabels?.find { it.first == pose.name }?.second ?: 0f
+                                val poseTempName = pose.name
+                                Log.d(TAG, "pose name:$poseTempName")
+                                poseSmoother.add(poseScore)
+                                val avgScore = poseSmoother.average()
+                                val roundScore = (avgScore * 100).roundToInt()
+                                scoreTextView.text = roundScore.toString()
+
+
+                                speak(getString(R.string.course_start))
+                                if (posePerformCount < pose.count) {
+                                    Log.d(TAG, "if posePerformCount start")
+                                    if (avgScore >= poseThreshold && !isPoseStandardMet) {
+                                        poseStartTime = System.currentTimeMillis()
+                                        isPoseStandardMet = true
                                         isPoseCompleted = false
-                                        poseLowScoreStartTime = 0L
-                                        speak(getString(R.string.pose_restart))
+                                        speak(getString(R.string.pose_standard_met))
+                                    } else if (isPoseStandardMet) {
+                                        val elapsedTime = System.currentTimeMillis() - poseStartTime
+                                        if (elapsedTime >= poseDuration && !isPoseCompleted) {
+                                            isPoseCompleted = true
+                                            posePerformCount++
+                                            poseCountTextView.text = posePerformCount.toString()
+                                            speak("完成了 $posePerformCount 次")
+
+                                        } else if (avgScore < poseThreshold) {
+                                            if (poseLowScoreStartTime == 0L) {
+                                                poseLowScoreStartTime = System.currentTimeMillis()
+                                            }
+
+                                            if (System.currentTimeMillis() - poseLowScoreStartTime >= poseExtendedDuration) {
+                                                isPoseStandardMet = false
+                                                isPoseStandardMet = false
+                                                speak(getString(R.string.pose_restart))
+                                            }
+                                        } else {
+                                            poseLowScoreStartTime = 0L
+                                        }
                                     }
-                                }else{
-                                    poseLowScoreStartTime = 0L
+                                } else {
+                                    speak(getString(R.string.breakMSG))
+                                    Log.d(TAG,"course finished")
+                                    currentElementIndex++
+                                    posePerformCount = 0
                                 }
                             }
-                        }
 
+                            fun performRest(rest: Rest){
+                                scoreTextView.text = "休息"
+                                Log.d(TAG,"休息功能启动")
+                                lifecycleScope.launch {
+                                    delay(rest.duration)
+                                    currentElementIndex++  // 休息结束后，更新课程进度
+                                }
+                            }
+
+                            fun onCourseCompleted(){
+                                Log.d(TAG,"Course ended")
+                                scoreTextView.text = "课程结束"
+
+                            }
+
+                            fun startCourse(course: Course?) {
+                                Log.d(TAG,"Start Course")
+                                course?.elements?.let { elements ->
+                                    if (currentElementIndex < elements.size) {
+                                        when (val element = elements[currentElementIndex]) {
+                                            is Pose -> performPose(element)
+                                            is Rest -> performRest(element)
+                                        }
+                                    } else {
+                                        onCourseCompleted()
+                                    }
+                                }
+                            }
+
+                            startCourse(course)
+                            Log.d(TAG,"Start course")
+                        }
                     }).apply {
                         prepareCamera()
+                        Log.d(TAG,"prepareCamera")
                     }
                 isPoseClassifier()
+                Log.d(TAG,"isPoseClassifier")
                 lifecycleScope.launch(Dispatchers.Main) {
                     cameraSource?.initCamera()
+                    Log.d(TAG,"camera init")
                 }
             }
             createPoseEstimator()
+            Log.d(TAG,"PoseEstimator")
         }
     }
 
@@ -319,6 +364,8 @@ class MotionDetectActivity : AppCompatActivity() {
             return if (values.isEmpty()) 0f else values.sum() / values.size
         }
     }
+
+
 
 
 

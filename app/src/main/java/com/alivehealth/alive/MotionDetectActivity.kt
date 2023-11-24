@@ -253,11 +253,9 @@ class MotionDetectActivity : AppCompatActivity() {
 
                             //课程判断逻辑
                             fun performPose(pose: Pose) {
-                                Log.d(TAG, "performPose ON")
                                 val poseScore =
                                     poseLabels?.find { it.first == pose.name }?.second ?: 0f
                                 val poseTempName = pose.name
-                                Log.d(TAG, "pose name:$poseTempName")
                                 poseSmoother.add(poseScore)
                                 val avgScore = poseSmoother.average()
                                 val roundScore = (avgScore * 100).roundToInt()
@@ -266,7 +264,7 @@ class MotionDetectActivity : AppCompatActivity() {
 
                                 speak(getString(R.string.course_start))
                                 if (posePerformCount < pose.count) {
-                                    Log.d(TAG, "if posePerformCount start")
+
                                     if (avgScore >= poseThreshold && !isPoseStandardMet) {
                                         poseStartTime = System.currentTimeMillis()
                                         isPoseStandardMet = true
@@ -296,37 +294,56 @@ class MotionDetectActivity : AppCompatActivity() {
                                     }
                                 } else {
                                     speak(getString(R.string.breakMSG))
-                                    Log.d(TAG,"course finished")
+
                                     currentElementIndex++
                                     posePerformCount = 0
+                                    Log.d(TAG,"course finished,index:$currentElementIndex")
                                 }
                             }
 
-                            fun performRest(rest: Rest){
-                                scoreTextView.text = "休息"
-                                Log.d(TAG,"休息功能启动")
+                            fun performRest(rest: Rest) {
                                 lifecycleScope.launch {
-                                    delay(rest.duration)
+                                    val totalDurationInSeconds = rest.duration / 1000
+                                    for (time in totalDurationInSeconds.toInt() downTo 1) {
+                                        scoreTextView.text = "休息: $time 秒"
+                                        delay(1000) // 每次循环延迟1秒
+                                    }
+                                    scoreTextView.text = "休息结束"
                                     currentElementIndex++  // 休息结束后，更新课程进度
+                                    Log.d(TAG,"rest ,index:$currentElementIndex ")
                                 }
                             }
+
 
                             fun onCourseCompleted(){
-                                Log.d(TAG,"Course ended")
+                                Log.d(TAG,"Course ended,index:$currentElementIndex")
                                 scoreTextView.text = "课程结束"
 
                             }
 
                             fun startCourse(course: Course?) {
-                                Log.d(TAG,"Start Course")
+                                Log.d(TAG,"Start Course,index:$currentElementIndex")
                                 course?.elements?.let { elements ->
                                     if (currentElementIndex < elements.size) {
+                                        Log.d(TAG, elements.size.toString())
                                         when (val element = elements[currentElementIndex]) {
-                                            is Pose -> performPose(element)
-                                            is Rest -> performRest(element)
+                                            is Pose ->
+                                            {
+                                                performPose(element)
+                                                Log.d(TAG,"Pose-> element: $element")
+                                                Log.d(TAG,"index:$currentElementIndex")
+                                            }
+                                            is Rest ->
+                                            {
+                                                performRest(element)
+                                                Log.d(TAG,"Rest -> element:$element")
+                                                Log.d(TAG,"index:$currentElementIndex")
+                                            }
+                                            else -> {Log.d(TAG,"course have No pose or rest")}
                                         }
                                     } else {
                                         onCourseCompleted()
+                                        Log.d(TAG,"course complete")
                                     }
                                 }
                             }

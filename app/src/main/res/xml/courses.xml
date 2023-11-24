@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <courses>
     <course id="course1">
-        <pose name="tree" count="5" />
-        <rest duration="10000" />
-        <pose name="chair" count="10" />
+        <pose name="tree" count="2" />
+        <rest duration="3000" />
+        <pose name="chair" count="2" />
     </course>
     <course id="course2">
         <pose name="warrior" count="4" />

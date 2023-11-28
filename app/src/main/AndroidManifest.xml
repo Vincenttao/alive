@@ -23,6 +23,15 @@
             android:label="@string/title_activity_MotionDetect"
             android:theme="@style/Theme.Alive" />
         <activity
+            android:name=".CourseActivity"
+            android:exported="false"
+            android:label="CourseActivity"/>
+        <activity
+            android:name=".RestActivity"
+            android:exported="false"
+            android:label="RestActivity"
+            />
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

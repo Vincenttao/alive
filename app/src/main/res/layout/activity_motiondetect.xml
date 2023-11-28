@@ -28,12 +28,26 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center">
 
-    <TextView
+        <TextView
+            android:id="@+id/poseNameTextView"
+            android:layout_width="match_parent"
+            android:layout_height="160dp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:background="#AA000000"
+            android:padding="16dp"
+            android:text="姿势名称"
+            android:textColor="@android:color/white"
+            android:textSize="72sp"
+            android:textStyle="bold" />
+
+        <TextView
         android:id="@+id/scoreTextView"
         android:layout_width="match_parent"
         android:layout_height="160dp"
         android:layout_gravity="center"
         android:gravity="center"
+            android:layout_below="@id/poseNameTextView"
         android:background="#AA000000"
         android:padding="16dp"
         android:text="姿势得分"

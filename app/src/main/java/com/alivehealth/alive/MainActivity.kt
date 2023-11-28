@@ -17,7 +17,8 @@ class MainActivity : AppCompatActivity() {
         val startButton: Button = findViewById(R.id.start_recovery_course)
         startButton.setOnClickListener {
             // 创建一个Intent来启动MotionDetectActivity
-            val intent = Intent(this, MotionDetectActivity::class.java)
+            val intent = Intent(this, CourseActivity::class.java)
+            intent.putExtra("COURSE_CODE", "course1")
             // 启动活动
             startActivity(intent)
         }
@@ -32,7 +33,7 @@ class MainActivity : AppCompatActivity() {
         gridView.setOnItemClickListener { _, _, position, _ ->
             Toast.makeText(this, "点击了: ${courses[position]}", Toast.LENGTH_SHORT).show()
             // 创建一个Intent来启动MotionDetectActivity
-            val intent = Intent(this, MotionDetectActivity::class.java)
+            val intent = Intent(this, CourseActivity::class.java)
             // 使用 putExtra 方法将对应的课程代码传递给MotionDetectActivity
             intent.putExtra("COURSE_CODE", courseCodes[position])
             // 启动活动

@@ -12,18 +12,6 @@
         android:src="@drawable/alive_health_logo"
         />
 
-    <GridView
-        android:id="@+id/courses_grid"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:numColumns="3"
-        android:verticalSpacing="10dp"
-        android:horizontalSpacing="10dp"
-        android:layout_below="@id/logo"
-        android:layout_margin="10dp"
-        android:drawSelectorOnTop="true"
-        android:gravity="center"/>
-
     <Button
         android:id="@+id/start_recovery_course"
         android:layout_width="match_parent"
@@ -31,5 +19,14 @@
         android:text="开始恢复课程"
         android:layout_alignParentBottom="true"
         android:theme="@style/Widget.MaterialComponents.Button.UnelevatedButton" />
+
+    <TextView
+        android:id="@+id/mainLoginTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/logo"
+        android:layout_centerHorizontal="true"
+        android:textSize="20dp"
+        android:text="显示信息" />
 
 </RelativeLayout>

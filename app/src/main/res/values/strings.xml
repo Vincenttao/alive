@@ -7,6 +7,7 @@
     <string name="previous">Previous</string>
 
     <string name="server_base_url">http://120.77.96.208:5000/</string>
+    <string name="SharedPreferences">MySharedPref</string>
 
 
     <string name="tfe_pe_app_name">爱乐为姿势判断应用</string>

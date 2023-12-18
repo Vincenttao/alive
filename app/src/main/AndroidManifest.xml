@@ -45,6 +45,11 @@
             android:exported="false"
             android:label="RestActivity"
             />
+        <activity android:name=".QuestionActivity"
+            android:exported="false"
+            android:label="QuestionActivity"
+            />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">

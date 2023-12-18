@@ -1,0 +1,143 @@
+{
+  "questions": [
+    {
+      "id": 1,
+      "text": "你感觉你比之前步速变慢了吗？",
+      "options": [
+        {
+          "text": "是",
+          "nextQuestion": 6
+        },
+        {
+          "text": "否",
+          "nextQuestion": 2
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "text": "在过去6个月，体重是否下降了2-3kg或者更多？",
+      "options": [
+        {
+          "text": "是",
+          "nextQuestion": 4
+        },
+        {
+          "text": "否",
+          "nextQuestion": 3
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "text": "这几天，你会担心忘记东西吗？",
+      "options": [
+        {
+          "text": "是",
+          "nextQuestion": null
+        },
+        {
+          "text": "否",
+          "nextQuestion": null
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "text": "与6个月前相比，你吃硬的东西是否有困难？",
+      "options": [
+        {
+          "text": "是",
+          "nextQuestion": 5
+        },
+        {
+          "text": "否",
+          "nextQuestion": 5
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "text": "在喝水或者汤的时候，是否有呛咳？",
+      "options": [
+        {
+          "text": "是",
+          "nextQuestion": null
+        },
+        {
+          "text": "否",
+          "nextQuestion": null
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "text": "过去一年中，你有没有跌倒？",
+      "options": [
+        {
+          "text": "是",
+          "nextQuestion": 7
+        },
+        {
+          "text": "否",
+          "nextQuestion": 7
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "text": "在走路过程中，你是否害怕跌倒？",
+      "options": [
+        {
+          "text": "是",
+          "nextQuestion": null
+        },
+        {
+          "text": "否",
+          "nextQuestion": null
+        }
+      ]
+    }
+  ],
+  "recommendations": {
+    "cognitive_course": {
+      "courseId": "4",
+      "description": "我们推荐您参加认知课程，课程编号为 cognitive123。"
+    },
+    "disability_prevention_course": {
+      "courseId": "3",
+      "description": "我们推荐您参加失能预防课程，课程编号为 disability456。"
+    },
+    "feeding_swallowing_exercise": {
+      "courseId": "6",
+      "description": "我们推荐您参加喂养和吞咽锻炼套餐，课程编号为 feeding789。"
+    },
+    "nutrition_improvement": {
+      "courseId": "5",
+      "description": "我们推荐您参加营养改善套餐。"
+    },
+    "balance_improvement": {
+      "courseId": "1",
+      "description": "我们推荐您参加平衡改善套餐。"
+    },
+    "strengthening_course": {
+      "courseId": "2",
+      "description": "我们推荐您参加强化套餐。"
+    }
+  },
+  "logic": {
+    "answerSequence": {
+      "1NoneNoneNoneNone11": "balance_improvement",
+      "1NoneNoneNoneNone10": "balance_improvement",
+      "1NoneNoneNoneNone01": "balance_improvement",
+      "1NoneNoneNoneNone00": "strengthening_course",
+      "01None11NoneNone": "feeding_swallowing_exercise",
+      "01None10NoneNone": "feeding_swallowing_exercise",
+      "01None01NoneNone": "feeding_swallowing_exercise",
+      "01None00NoneNone": "nutrition_improvement",
+      "001NoneNoneNoneNone": "cognitive_course",
+      "000NoneNoneNoneNone": "disability_prevention_course"
+    }
+  }
+
+}

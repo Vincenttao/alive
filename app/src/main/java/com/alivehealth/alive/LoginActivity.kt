@@ -1,17 +1,19 @@
 package com.alivehealth.alive
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import com.alivehealth.alive.databinding.LoginBinding // 确保导入正确的绑定类
-import kotlinx.coroutines.*
-import java.net.HttpURLConnection
-import java.net.URL
-import org.json.JSONObject
 import android.util.Log
 import android.view.Gravity
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import com.alivehealth.alive.databinding.LoginBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 
 class LoginActivity : AppCompatActivity() {
     private lateinit var binding: LoginBinding
@@ -53,8 +55,9 @@ class LoginActivity : AppCompatActivity() {
                     Toast.makeText(this@LoginActivity, "登录成功", Toast.LENGTH_SHORT).show()
 
                     saveToken(token)
+                    val mainIntent = Intent(this@LoginActivity, MainActivity::class.java)
+                    startActivity(mainIntent)
 
-                    setResult(Activity.RESULT_OK)
                     finish()
                 } else {
                     val toast = Toast.makeText(this@LoginActivity, "用户名或者密码错误", Toast.LENGTH_SHORT)
@@ -100,7 +103,7 @@ class LoginActivity : AppCompatActivity() {
         return 0 to "Error"
     }
 
-    fun saveToken(token: String) {
+    private fun saveToken(token: String) {
         val sharedPreferences = getSharedPreferences("MySharedPref", MODE_PRIVATE)
         val editor = sharedPreferences.edit()
         editor.putString("token", token)

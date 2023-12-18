@@ -12,14 +12,6 @@
         android:src="@drawable/alive_health_logo"
         />
 
-    <Button
-        android:id="@+id/start_recovery_course"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="开始恢复课程"
-        android:layout_alignParentBottom="true"
-        android:theme="@style/Widget.MaterialComponents.Button.UnelevatedButton" />
-
     <TextView
         android:id="@+id/mainLoginTextView"
         android:layout_width="wrap_content"
@@ -28,5 +20,13 @@
         android:layout_centerHorizontal="true"
         android:textSize="20dp"
         android:text="显示信息" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnLogout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="退出登录"
+        android:layout_centerInParent="true"
+        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
 </RelativeLayout>

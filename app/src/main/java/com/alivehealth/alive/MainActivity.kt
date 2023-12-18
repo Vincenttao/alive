@@ -1,99 +1,177 @@
 package com.alivehealth.alive
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Button
-import android.widget.GridView
-import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
-import com.alivehealth.alive.databinding.ActivityMainBinding
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityMainBinding
-    private lateinit var loginActivityResultLauncher: ActivityResultLauncher<Intent>
-
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
 
-        loginActivityResultLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                // 登录成功
-                // 你的逻辑代码
-                val token = getToken()
-                binding.mainLoginTextView.text = token ?: "No token found"
+        setContent {
+            val sharedPreferences = getSharedPreferences(getString(R.string.SharedPreferences), MODE_PRIVATE)
+            val isLoggedIn = sharedPreferences.contains("token")
 
+            if (isLoggedIn) {
+                MainScreen()
             } else {
-                // 登录失败或用户取消登录
-                finish() // 如果你希望在登录失败时关闭MainActivity
+                // Navigate to Login Activity
+                startActivity(Intent(this, LoginActivity::class.java))
+                finish()
             }
         }
-
-        if (!isLoggedIn()) {
-            Toast.makeText(this, "没有找到token，请登录", Toast.LENGTH_SHORT).show()
-            val loginIntent = Intent(this, LoginActivity::class.java)
-            loginActivityResultLauncher.launch(loginIntent)
-            return
-        }
-
-
-
-        /*
-        // 设置按钮点击事件监听器，启动恢复课程
-
-        val startButton: Button = findViewById(R.id.start_recovery_course)
-        startButton.setOnClickListener {
-            // 创建一个Intent来启动MotionDetectActivity
-            val intent = Intent(this, CourseActivity::class.java)
-            intent.putExtra("COURSE_CODE", "course1")
-            // 启动活动
-            startActivity(intent)
-        }
-        val gridView: GridView = findViewById(R.id.courses_grid)
-
-        val courses = arrayOf("瑜伽姿势tree", "课程2", "课程3", "课程4", "课程5", "课程6", "课程7", "课程8", "课程9")
-        val courseCodes = arrayOf("course1", "sun", "moon", "tree","tree","tree","tree","tree","tree")
-        val adapter = GridItemAdapter(this, courses)
-
-        gridView.adapter = adapter
-
-        gridView.setOnItemClickListener { _, _, position, _ ->
-            Toast.makeText(this, "点击了: ${courses[position]}", Toast.LENGTH_SHORT).show()
-            // 创建一个Intent来启动MotionDetectActivity
-            val intent = Intent(this, CourseActivity::class.java)
-            // 使用 putExtra 方法将对应的课程代码传递给MotionDetectActivity
-            intent.putExtra("COURSE_CODE", courseCodes[position])
-            // 启动活动
-            startActivity(intent)
-        }
-
-         */
-
-
     }
 
-    private fun isLoggedIn(): Boolean {
-        val sharedPreferences = getSharedPreferences("MySharedPref", MODE_PRIVATE)
-        val token = sharedPreferences.getString("token", null)
-        return token != null && token.isNotBlank()
-
+    @Preview
+    @Composable
+    fun PreviewMainScreen() {
+        MainScreen()
     }
 
-    private fun getToken(): String?{
-        val sharedPreferences = getSharedPreferences("MySharedPref", MODE_PRIVATE)
-        val token = sharedPreferences.getString("token", null)
-        return token
+    @Composable
+    fun MainScreen() {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Logo
+            Image(
+                bitmap = ImageBitmap.imageResource(R.drawable.alive_health_logo),
+                contentDescription = "Logo"
+            )
+
+            // Calendar
+            WeekCalendar()
+
+            // Schedule
+            // Replace with actual data fetching logic
+            val schedules = listOf("Meeting at 10 AM", "Lunch at 12 PM", "Report Submission by 5 PM")
+            schedules.forEach { schedule ->
+                ScheduleCard(schedule)
+            }
+            //分割线
+            Divider(color = Color.LightGray, thickness = 1.dp)
+
+            //按钮
+
+            Button(
+                onClick = {
+                    startActivity(Intent(this@MainActivity, QuestionActivity::class.java))
+                },
+                modifier = Modifier.padding(top = 16.dp)
+            ){
+                Text(text = "为我推荐课程")
+            }
+
+            Button(
+                onClick = {
+                    // 获取SharedPreferences编辑器
+                    val sharedPreferences = getSharedPreferences(getString(R.string.SharedPreferences), MODE_PRIVATE)
+                    val editor = sharedPreferences.edit()
+                    // 清除token
+                    editor.remove("token")
+                    editor.apply()
+
+                    // 返回到登录屏幕
+                    startActivity(Intent(this@MainActivity, LoginActivity::class.java))
+                    // 结束当前的MainActivity
+                    finish()
+                },
+                modifier = Modifier.padding(top = 16.dp)
+            ){
+                Text(text = "退出登录")
+            }
+
+
+        }
     }
 
+    @Composable
+    fun WeekCalendar() {
+        val today = LocalDate.now()
+        var selectedDate by remember { mutableStateOf(today) } // 记录选中的日期
 
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            for (i in 0..6) {
+                val day = today.plusDays(i.toLong())
+                DayCard(day, day == selectedDate) {
+                    selectedDate = day // 更新选中的日期
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun DayCard(day: LocalDate, isSelected: Boolean, onClick: () -> Unit) {
+        val textColor = if (isSelected) Color(0xFFFFA500) else Color.Black // 橙色或黑色
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .clickable(onClick = onClick)
+                .padding(4.dp)
+        ) {
+            Text(
+                text = day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.SIMPLIFIED_CHINESE),
+                color = textColor
+            )
+            Text(
+                text = day.dayOfMonth.toString(),
+                color = textColor
+            )
+        }
+    }
+
+    @Composable
+    fun ScheduleCard(schedule: String) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .clickable {
+                    // Start another activity on card click
+                    startActivity(Intent(this@MainActivity, DetailActivity::class.java))
+                }
+        ) {
+            Text(
+                text = schedule,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    }
 }
-
-

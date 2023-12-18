@@ -46,7 +46,7 @@ class RegisterActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             val response = makeRegisterRequest(username, password)
             withContext(Dispatchers.Main) {
-                if (response.first == HttpURLConnection.HTTP_OK) {
+                if (response.first == HttpURLConnection.HTTP_CREATED) {
                     Toast.makeText(this@RegisterActivity, "注册成功", Toast.LENGTH_SHORT).show()
                     // 可能的逻辑：关闭活动或跳转到登录界面
                     val loginIntent = Intent(this@RegisterActivity, LoginActivity::class.java)

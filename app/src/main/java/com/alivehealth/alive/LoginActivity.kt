@@ -50,11 +50,16 @@ class LoginActivity : AppCompatActivity() {
                     // 解析响应中的token
                     val responseBody = JSONObject(response.second)
                     val token = responseBody.getString("token")
+                    val userId = responseBody.getInt("user_id")
 
                     // 存储token，显示登录成功信息，跳转到主界面等
                     Toast.makeText(this@LoginActivity, "登录成功", Toast.LENGTH_SHORT).show()
 
-                    saveToken(token)
+
+                    saveCredentials(token, userId)
+
+                    Toast.makeText(this@LoginActivity, "登录成功", Toast.LENGTH_SHORT).show()
+
                     val mainIntent = Intent(this@LoginActivity, MainActivity::class.java)
                     startActivity(mainIntent)
 
@@ -103,18 +108,14 @@ class LoginActivity : AppCompatActivity() {
         return 0 to "Error"
     }
 
-    private fun saveToken(token: String) {
-        val sharedPreferences = getSharedPreferences("MySharedPref", MODE_PRIVATE)
+
+
+    private fun saveCredentials(token: String, userId: Int) {
+        val sharedPreferences = getSharedPreferences(getString(R.string.SharedPreferences), MODE_PRIVATE)
         val editor = sharedPreferences.edit()
         editor.putString("token", token)
+        editor.putInt("userId", userId)
         editor.apply()
     }
 
 }
-
-
-
-
-//        假设登录成功后的某个地方
-//        setResult(RESULT_OK)
-//        finish()

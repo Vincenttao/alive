@@ -1,7 +1,9 @@
 package com.alivehealth.alive
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -27,10 +30,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
 
 private const val TAG="测试->QuestionActivity"
 
@@ -86,12 +94,23 @@ class QuestionActivity : ComponentActivity() {
 
                     val question = viewModel.currentQuestion
                     question?.let{
+                        Log.d(TAG,"Displaying question card")
                         QuestionCard(question = (it), onOptionSelected ={ nextId,answer ->
                             viewModel.onOptionSelected(nextId, answer)
                         } )
                     } ?: run {
                         val recommendation = viewModel.getRecommendation((logic))
-                        Text("问答结束。推荐课程：${recommendation ?:"无"}")
+                        Log.d(TAG,"问答结束。推荐课程：${recommendation ?:"无"}")
+                        if (recommendation !=null) {
+                            ConfirmAddToListDialog(recommendation) { courseId ->
+                                viewModel.addToList(this@QuestionActivity, courseId)
+                            }
+                        } else {
+                            Text("问答结束。推荐课程:无")
+                        }
+                    }
+                    if (viewModel.showDialog) {
+                        OverwriteCourseDialog(viewModel)
                     }
                 }
             }
@@ -153,8 +172,55 @@ class QuestionActivity : ComponentActivity() {
         }
     }
 
+    @Composable
+    fun ConfirmAddToListDialog(courseId: String, onConfirm: (String) -> Unit) {
+        // 使用对话框组件询问用户
+        AlertDialog(
+            onDismissRequest = { /* 对话框关闭时的处理 */ },
+            title = { Text("添加课程到每日清单") },
+            text = { Text("是否要将课程 $courseId 添加到您的每日清单中？") },
+            confirmButton = {
+                Button(onClick = { onConfirm(courseId) }) {
+                    Text("确认")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { /* 取消时的处理 */ }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+
+    @Composable
+    fun OverwriteCourseDialog(viewModel: QuestionViewModel) {
+        Log.d(TAG,"Overwrite dialog displaying")
+        AlertDialog(
+            onDismissRequest = { viewModel.showDialog = false },
+            title = { Text("覆盖课程") },
+            text = { Text("此课程已在您的清单中。是否要覆盖它？") },
+            confirmButton = {
+                Button(onClick = {
+                    Log.d(TAG,"onClick")
+                    viewModel.overwriteCourse(this@QuestionActivity)
+                    viewModel.showDialog = false
+                }) {
+                    Text("覆盖")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { viewModel.showDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+
+
 
 }
+
+
 
 data class QuestionsData(
     val questions: List<QuestionItem>,
@@ -192,6 +258,41 @@ class QuestionViewModel : ViewModel() {
     private var currentQuestionIndex = 0
 
     private var userAnswers = mutableListOf<String?>()
+
+    var showDialog by mutableStateOf(false)
+    private var tempCourseId: String? = null
+
+    private fun showOverwriteDialog(courseId: String) {
+        showDialog = true
+        tempCourseId = courseId
+    }
+
+    fun overwriteCourse(context: Context) {
+        tempCourseId?.let { courseId ->
+            viewModelScope.launch {
+                // 从SharedPreferences加载Token
+                Log.d(TAG,"Attempting to overwriting course: $courseId")
+                val (token, _) = loadCredentials(context)
+                if (token != null) {
+                    // 发送网络请求以覆盖课程
+                    val response = makeCourseRequest(context, courseId, "/overwrite_course_for_user", token)
+                    when (response.first) {
+                        HttpURLConnection.HTTP_OK, HttpURLConnection.HTTP_CREATED -> {
+                            // 课程覆盖成功
+                            Toast.makeText(context, "课程已覆盖", Toast.LENGTH_LONG).show()
+                        }
+                        else -> {
+                            // 错误处理
+                            Toast.makeText(context, "Error: ${response.second}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                } else {
+                    Toast.makeText(context, "用户未登录", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
 
     fun setQuestions(questions: List<QuestionItem>) {
         questionList = questions
@@ -233,4 +334,73 @@ class QuestionViewModel : ViewModel() {
         Log.d(TAG,"Recommendation is $recommendationResult")
         return logic[answerSequence]
     }
+
+    fun addToList(context: Context, courseId: String) {
+        viewModelScope.launch {
+            // 从SharedPreferences加载Token
+            val (token, _) = loadCredentials(context)
+            if (token != null) {
+                val response = makeCourseRequest(context, courseId, "/add_course_to_user", token)
+                when (response.first) {
+                    HttpURLConnection.HTTP_OK, HttpURLConnection.HTTP_CREATED -> {
+                        Toast.makeText(context, "课程成功添加到用户", Toast.LENGTH_LONG).show()
+                    }
+                    HttpURLConnection.HTTP_CONFLICT -> {
+                        showOverwriteDialog(courseId) // 确保覆盖对话框也使用Token
+                    }
+                    else -> {
+                        Toast.makeText(context, "Error: ${response.second}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } else {
+                Toast.makeText(context, "用户未登录", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun makeCourseRequest(context: Context, courseId: String, apiPath: String, token: String): Pair<Int, String> {
+        val baseUrl = context.getString(R.string.server_base_url)
+        val url = URL(baseUrl + apiPath)
+
+        (url.openConnection() as HttpURLConnection).apply {
+            try {
+                requestMethod = "POST"
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("Authorization", "Bearer $token") // 添加Token到请求头
+
+                // 构建请求体
+                val requestJson = JSONObject().apply {
+                    put("course_id", courseId)
+                }
+                outputStream.use { it.write(requestJson.toString().toByteArray()) }
+
+                // 获取响应码
+                val responseCode = responseCode
+
+                // 处理响应
+                val response = if (responseCode == HttpURLConnection.HTTP_OK || responseCode == HttpURLConnection.HTTP_CREATED) {
+                    inputStream.bufferedReader().use { it.readText() } // 成功响应
+                } else {
+                    errorStream?.bufferedReader()?.use { it.readText() } ?: "Unknown error" // 错误响应
+                }
+
+                return responseCode to response
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during making course request: ${e.message}")
+                e.printStackTrace()
+                return 0 to "Error during making course request: ${e.message}"
+            } finally {
+                disconnect()
+            }
+        }
+    }
+
+
+    private fun loadCredentials(context: Context): Pair<String?, Int> {
+        val sharedPreferences = context.getSharedPreferences(context.getString(R.string.SharedPreferences), Context.MODE_PRIVATE)
+        val token = sharedPreferences.getString("token", null)
+        val userId = sharedPreferences.getInt("userId", -1)
+        return Pair(token, userId)
+    }
+
 }

@@ -102,15 +102,15 @@
   "recommendations": {
     "cognitive_course": {
       "courseId": "4",
-      "description": "我们推荐您参加认知课程，课程编号为 cognitive123。"
+      "description": "我们推荐您参加认知课程。"
     },
     "disability_prevention_course": {
       "courseId": "3",
-      "description": "我们推荐您参加失能预防课程，课程编号为 disability456。"
+      "description": "我们推荐您参加失能预防课程。"
     },
     "feeding_swallowing_exercise": {
       "courseId": "6",
-      "description": "我们推荐您参加喂养和吞咽锻炼套餐，课程编号为 feeding789。"
+      "description": "我们推荐您参加喂养和吞咽锻炼套餐。"
     },
     "nutrition_improvement": {
       "courseId": "5",

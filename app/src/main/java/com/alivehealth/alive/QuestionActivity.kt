@@ -34,15 +34,20 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.InputStreamReader
+import java.io.PrintWriter
+import java.io.StringWriter
 import java.net.HttpURLConnection
 import java.net.URL
 
 private const val TAG="测试->QuestionActivity"
 
 class QuestionActivity : ComponentActivity() {
+    private lateinit var recommendations: Map<String, Recommendation>
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -51,6 +56,7 @@ class QuestionActivity : ComponentActivity() {
         viewModel.setQuestions(questionsData.questions) // 假设 viewModel 只处理问题列表
 
         val logic = questionsData.logic.answerSequence
+        recommendations = questionsData.recommendations
 
 
         setContent {
@@ -101,9 +107,12 @@ class QuestionActivity : ComponentActivity() {
                     } ?: run {
                         val recommendation = viewModel.getRecommendation((logic))
                         Log.d(TAG,"问答结束。推荐课程：${recommendation ?:"无"}")
+
                         if (recommendation !=null) {
-                            ConfirmAddToListDialog(recommendation) { courseId ->
-                                viewModel.addToList(this@QuestionActivity, courseId)
+                            val courseId = recommendations[recommendation]?.courseId
+                            Log.d(TAG,"Recommendation:$courseId")
+                            ConfirmAddToListDialog(courseId ?: "") { newCourseId  ->
+                                viewModel.addToList(this@QuestionActivity, newCourseId)
                             }
                         } else {
                             Text("问答结束。推荐课程:无")
@@ -275,7 +284,7 @@ class QuestionViewModel : ViewModel() {
                 val (token, _) = loadCredentials(context)
                 if (token != null) {
                     // 发送网络请求以覆盖课程
-                    val response = makeCourseRequest(context, courseId, "/overwrite_course_for_user", token)
+                    val response = makeCourseRequest(context, courseId, "overwrite_course_for_user", token)
                     when (response.first) {
                         HttpURLConnection.HTTP_OK, HttpURLConnection.HTTP_CREATED -> {
                             // 课程覆盖成功
@@ -336,11 +345,16 @@ class QuestionViewModel : ViewModel() {
     }
 
     fun addToList(context: Context, courseId: String) {
+        Log.d(TAG, "addToList function is called")
         viewModelScope.launch {
+            Log.d(TAG, "Inside viewModelScope.launch")
             // 从SharedPreferences加载Token
             val (token, _) = loadCredentials(context)
+            Log.d(TAG, "Token loaded: $token")
+            Log.d(TAG, "Network request on thread: ${Thread.currentThread().name}")
             if (token != null) {
-                val response = makeCourseRequest(context, courseId, "/add_course_to_user", token)
+                val response = makeCourseRequest(context, courseId, "add_course_to_user", token)
+                Log.d(TAG, "Response code: ${response.first}, Response body: ${response.second}")
                 when (response.first) {
                     HttpURLConnection.HTTP_OK, HttpURLConnection.HTTP_CREATED -> {
                         Toast.makeText(context, "课程成功添加到用户", Toast.LENGTH_LONG).show()
@@ -358,9 +372,13 @@ class QuestionViewModel : ViewModel() {
         }
     }
 
-    private fun makeCourseRequest(context: Context, courseId: String, apiPath: String, token: String): Pair<Int, String> {
+    private suspend fun makeCourseRequest(context: Context, courseId: String, apiPath: String, token: String): Pair<Int, String> = withContext(
+        Dispatchers.IO) {
         val baseUrl = context.getString(R.string.server_base_url)
         val url = URL(baseUrl + apiPath)
+        Log.d(TAG,"Make request:$url")
+
+        var responsePair: Pair<Int, String> = 0 to "Initial response"
 
         (url.openConnection() as HttpURLConnection).apply {
             try {
@@ -372,27 +390,39 @@ class QuestionViewModel : ViewModel() {
                 val requestJson = JSONObject().apply {
                     put("course_id", courseId)
                 }
+                Log.d(TAG,"Request body: $requestJson")
                 outputStream.use { it.write(requestJson.toString().toByteArray()) }
 
                 // 获取响应码
                 val responseCode = responseCode
+                Log.d(TAG, "Response code: $responseCode")
 
                 // 处理响应
                 val response = if (responseCode == HttpURLConnection.HTTP_OK || responseCode == HttpURLConnection.HTTP_CREATED) {
-                    inputStream.bufferedReader().use { it.readText() } // 成功响应
+                    val responseBody = inputStream.bufferedReader().use { it.readText() }
+                    Log.d(TAG, "Response body: $responseBody")
+                    responseBody // 成功响应
                 } else {
-                    errorStream?.bufferedReader()?.use { it.readText() } ?: "Unknown error" // 错误响应
+                    val errorBody = errorStream?.bufferedReader()?.use { it.readText() } ?: "Unknown error"
+                    Log.e(TAG, "Error response body: $errorBody")
+                    errorBody // 错误响应
                 }
 
-                return responseCode to response
+                responsePair = responseCode to response
             } catch (e: Exception) {
+                val sw = StringWriter()
+                val pw = PrintWriter(sw)
+                e.printStackTrace(pw)
+                val stackTraceString = sw.toString()
                 Log.e(TAG, "Error during making course request: ${e.message}")
-                e.printStackTrace()
-                return 0 to "Error during making course request: ${e.message}"
+                Log.e(TAG,"Stack trace: $stackTraceString")
+                responsePair = 0 to "Error during making course request: ${e.message}\nStack trace: $stackTraceString"
             } finally {
                 disconnect()
             }
         }
+
+        responsePair
     }
 
 

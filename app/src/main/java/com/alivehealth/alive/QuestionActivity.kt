@@ -56,7 +56,14 @@ class QuestionActivity : ComponentActivity() {
         val viewModel: QuestionViewModel by viewModels()
         val questionsData = loadQuestionsFromJson()
         viewModel.setQuestions(questionsData.questions) // 假设 viewModel 只处理问题列表
-
+        viewModel.navigationEvent.observe(this) { event ->
+            event.getContentIfNotHandled()?.let {
+                if(it == "MainActivity") {
+                    startActivity(Intent(this, MainActivity::class.java))
+                    finish()
+                }
+            }
+        }
         val logic = questionsData.logic.answerSequence
         recommendations = questionsData.recommendations
 
@@ -281,6 +288,22 @@ data class Option(
     val nextQuestion: Int?
 )
 
+// 用于表示单次事件的类
+class Event<out T>(private val content: T) {
+    private var hasBeenHandled = false
+
+    fun getContentIfNotHandled(): T? {
+        return if (hasBeenHandled) {
+            null
+        } else {
+            hasBeenHandled = true
+            content
+        }
+    }
+
+    fun peekContent(): T = content
+}
+
 
 
 class QuestionViewModel : ViewModel() {
@@ -361,17 +384,19 @@ class QuestionViewModel : ViewModel() {
                 when (response.first) {
                     HttpURLConnection.HTTP_OK, HttpURLConnection.HTTP_CREATED -> {
                         Toast.makeText(context, "课程成功添加到用户", Toast.LENGTH_LONG).show()
-
+                        navigationEvent.postValue(Event("MainActivity")) // 触发跳转到 MainActivity
                     }
                     HttpURLConnection.HTTP_CONFLICT -> {
                         showOverwriteDialog(courseId) // 确保覆盖对话框也使用Token
                     }
                     else -> {
                         Toast.makeText(context, "Error: ${response.second}", Toast.LENGTH_LONG).show()
+                        navigationEvent.postValue(Event("MainActivity")) // 触发跳转到 MainActivity
                     }
                 }
             } else {
                 Toast.makeText(context, "用户未登录", Toast.LENGTH_LONG).show()
+                navigationEvent.postValue(Event("MainActivity"))
             }
         }
     }
@@ -389,14 +414,17 @@ class QuestionViewModel : ViewModel() {
                         HttpURLConnection.HTTP_OK, HttpURLConnection.HTTP_CREATED -> {
                             // 课程覆盖成功
                             Toast.makeText(context, "课程已覆盖", Toast.LENGTH_LONG).show()
+                            navigationEvent.postValue(Event("MainActivity"))
                         }
                         else -> {
                             // 错误处理
                             Toast.makeText(context, "Error: ${response.second}", Toast.LENGTH_LONG).show()
+                            navigationEvent.postValue(Event("MainActivity"))
                         }
                     }
                 } else {
                     Toast.makeText(context, "用户未登录", Toast.LENGTH_LONG).show()
+                    navigationEvent.postValue(Event("MainActivity"))
                 }
             }
         }

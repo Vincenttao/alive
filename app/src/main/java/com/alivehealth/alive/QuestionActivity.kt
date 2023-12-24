@@ -1,6 +1,7 @@
 package com.alivehealth.alive
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -29,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -81,6 +83,11 @@ class QuestionActivity : ComponentActivity() {
         return questionsData
     }
 
+    private fun navigateToMainActivity() {
+        startActivity(Intent(this, MainActivity::class.java))
+        finish()
+    }
+
 
     @Composable
     fun QuestionScreen(viewModel: QuestionViewModel = viewModel(), logic: Map<String, String>) {
@@ -111,9 +118,16 @@ class QuestionActivity : ComponentActivity() {
                         if (recommendation !=null) {
                             val courseId = recommendations[recommendation]?.courseId
                             Log.d(TAG,"Recommendation:$courseId")
-                            ConfirmAddToListDialog(courseId ?: "") { newCourseId  ->
-                                viewModel.addToList(this@QuestionActivity, newCourseId)
-                            }
+
+                            ConfirmAddToListDialog(
+                                courseId = courseId ?:"",
+                                onConfirm = { newCourseId ->
+                                    viewModel.addToList(this@QuestionActivity, newCourseId)
+                                },
+                                onCancel = {
+                                    navigateToMainActivity()
+                                }
+                            )
                         } else {
                             Text("问答结束。推荐课程:无")
                         }
@@ -185,7 +199,11 @@ class QuestionActivity : ComponentActivity() {
     }
 
     @Composable
-    fun ConfirmAddToListDialog(courseId: String, onConfirm: (String) -> Unit) {
+    fun ConfirmAddToListDialog(
+        courseId: String,
+        onConfirm: (String) -> Unit,
+        onCancel:() -> Unit
+    ) {
         // 使用对话框组件询问用户
         AlertDialog(
             onDismissRequest = {/*话题关闭时处理方法*/},
@@ -194,12 +212,13 @@ class QuestionActivity : ComponentActivity() {
             confirmButton = {
                 Button(onClick = {
                     onConfirm(courseId)
+                    //调用viewModel.addToList方法
                 }) {
                     Text("确认")
                 }
             },
             dismissButton = {
-                Button(onClick = { /* 取消时的处理 */ }) {
+                Button(onClick = onCancel) {
                     Text("取消")
                 }
             }
@@ -276,37 +295,15 @@ class QuestionViewModel : ViewModel() {
     var showDialog by mutableStateOf(false)
     private var tempCourseId: String? = null
 
+    val navigationEvent = MutableLiveData<Event<String>>() //用于页面跳转的事件
+
 
     private fun showOverwriteDialog(courseId: String) {
         showDialog = true
         tempCourseId = courseId
     }
 
-    fun overwriteCourse(context: Context) {
-        tempCourseId?.let { courseId ->
-            viewModelScope.launch {
-                // 从SharedPreferences加载Token
-                Log.d(TAG,"Attempting to overwriting course: $courseId")
-                val (token, _) = loadCredentials(context)
-                if (token != null) {
-                    // 发送网络请求以覆盖课程
-                    val response = makeCourseRequest(context, courseId, "overwrite_course_for_user", token)
-                    when (response.first) {
-                        HttpURLConnection.HTTP_OK, HttpURLConnection.HTTP_CREATED -> {
-                            // 课程覆盖成功
-                            Toast.makeText(context, "课程已覆盖", Toast.LENGTH_LONG).show()
-                        }
-                        else -> {
-                            // 错误处理
-                            Toast.makeText(context, "Error: ${response.second}", Toast.LENGTH_LONG).show()
-                        }
-                    }
-                } else {
-                    Toast.makeText(context, "用户未登录", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
+
 
 
     fun setQuestions(questions: List<QuestionItem>) {
@@ -364,6 +361,7 @@ class QuestionViewModel : ViewModel() {
                 when (response.first) {
                     HttpURLConnection.HTTP_OK, HttpURLConnection.HTTP_CREATED -> {
                         Toast.makeText(context, "课程成功添加到用户", Toast.LENGTH_LONG).show()
+
                     }
                     HttpURLConnection.HTTP_CONFLICT -> {
                         showOverwriteDialog(courseId) // 确保覆盖对话框也使用Token
@@ -374,6 +372,32 @@ class QuestionViewModel : ViewModel() {
                 }
             } else {
                 Toast.makeText(context, "用户未登录", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    fun overwriteCourse(context: Context) {
+        tempCourseId?.let { courseId ->
+            viewModelScope.launch {
+                // 从SharedPreferences加载Token
+                Log.d(TAG,"Attempting to overwriting course: $courseId")
+                val (token, _) = loadCredentials(context)
+                if (token != null) {
+                    // 发送网络请求以覆盖课程
+                    val response = makeCourseRequest(context, courseId, "overwrite_course_for_user", token)
+                    when (response.first) {
+                        HttpURLConnection.HTTP_OK, HttpURLConnection.HTTP_CREATED -> {
+                            // 课程覆盖成功
+                            Toast.makeText(context, "课程已覆盖", Toast.LENGTH_LONG).show()
+                        }
+                        else -> {
+                            // 错误处理
+                            Toast.makeText(context, "Error: ${response.second}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                } else {
+                    Toast.makeText(context, "用户未登录", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }

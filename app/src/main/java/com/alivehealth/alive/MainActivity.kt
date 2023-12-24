@@ -201,6 +201,17 @@ class MainActivity : AppCompatActivity() {
                 Text(text = "退出登录")
             }
 
+            Button(
+                onClick = {
+                    startActivity(Intent(this@MainActivity, QuestionActivity::class.java))
+                },
+                modifier = Modifier.padding(top = 16.dp)
+            ){
+                Text(text = "为我推荐课程")
+            }
+
+            Divider(color = Color.LightGray, thickness = 1.dp)
+
             // Calendar
             WeekCalendar()
 
@@ -213,24 +224,6 @@ class MainActivity : AppCompatActivity() {
                     ScheduleCard(exerciseInfo)
                 }
             }
-
-            //分割线
-            Divider(color = Color.LightGray, thickness = 1.dp)
-
-            //按钮
-
-            Button(
-                onClick = {
-                    startActivity(Intent(this@MainActivity, QuestionActivity::class.java))
-                },
-                modifier = Modifier.padding(top = 16.dp)
-            ){
-                Text(text = "为我推荐课程")
-            }
-
-
-
-
         }
     }
 

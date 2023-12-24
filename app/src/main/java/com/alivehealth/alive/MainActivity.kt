@@ -34,7 +34,9 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 import android.util.Log
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -46,6 +48,7 @@ import java.net.URL
 private const val TAG="测试->MainActivity"
 
 data class ExerciseInfo(
+    val id:Int,
     val name: String,
     val sequence: Int,
     val completed: Int
@@ -87,12 +90,12 @@ private suspend fun fetchDailyExerciseData(context: Context, date: String, token
             val requestJson = JSONObject().apply {
                 put("date", date)
             }
-            Log.d(TAG, "Request body: $requestJson")
+            //Log.d(TAG, "Request body: $requestJson")
             outputStream.use { it.write(requestJson.toString().toByteArray()) }
 
             // 获取响应码
             val responseCode = responseCode
-            Log.d(TAG, "Response code: $responseCode")
+            //Log.d(TAG, "Response code: $responseCode")
 
             // 处理响应
             val response = if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -101,19 +104,19 @@ private suspend fun fetchDailyExerciseData(context: Context, date: String, token
                 responseBody
             } else {
                 val errorBody = errorStream?.bufferedReader()?.use { it.readText() } ?: "Unknown error"
-                Log.e("MainActivity", "Error response body: $errorBody")
+                Log.e(TAG, "Error response body: $errorBody")
                 errorBody
             }
 
             responsePair = responseCode to response
         } catch (e: Exception) {
-            val sw = StringWriter()
-            val pw = PrintWriter(sw)
-            e.printStackTrace(pw)
-            val stackTraceString = sw.toString()
-            Log.e("MainActivity", "Error during fetching daily exercise data: ${e.message}")
-            Log.e("MainActivity", "Stack trace: $stackTraceString")
-            responsePair = 0 to "Error during fetching daily exercise data: ${e.message}\nStack trace: $stackTraceString"
+           // val sw = StringWriter()
+           // val pw = PrintWriter(sw)
+           // e.printStackTrace(pw)
+            //val stackTraceString = sw.toString()
+            //Log.e("MainActivity", "Error during fetching daily exercise data: ${e.message}")
+            //Log.e("MainActivity", "Stack trace: $stackTraceString")
+            //responsePair = 0 to "Error during fetching daily exercise data: ${e.message}\nStack trace: $stackTraceString"
         } finally {
             disconnect()
         }
@@ -156,7 +159,7 @@ class MainActivity : AppCompatActivity() {
         LaunchedEffect(selectedDate) {
             val sharedPreferences = getSharedPreferences(getString(R.string.SharedPreferences), MODE_PRIVATE)
             val token = sharedPreferences.getString("token", "")
-            Log.d(TAG,"in MainScreen() get token:$token")
+            //Log.d(TAG,"in MainScreen() get token:$token")
             if (!token.isNullOrEmpty()) {
                 val (responseCode, responseBody) = fetchDailyExerciseData(this@MainActivity, selectedDate.toString(), token)
                 if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -179,28 +182,6 @@ class MainActivity : AppCompatActivity() {
                 contentDescription = "Logo"
             )
 
-            // Calendar
-            WeekCalendar()
-
-            // Schedule
-            // Replace with actual data fetching logic
-            exercisePlan.forEach { schedule ->
-                ScheduleCard(schedule)
-            }
-            //分割线
-            Divider(color = Color.LightGray, thickness = 1.dp)
-
-            //按钮
-
-            Button(
-                onClick = {
-                    startActivity(Intent(this@MainActivity, QuestionActivity::class.java))
-                },
-                modifier = Modifier.padding(top = 16.dp)
-            ){
-                Text(text = "为我推荐课程")
-            }
-
             Button(
                 onClick = {
                     // 获取SharedPreferences编辑器
@@ -219,6 +200,35 @@ class MainActivity : AppCompatActivity() {
             ){
                 Text(text = "退出登录")
             }
+
+            // Calendar
+            WeekCalendar()
+
+            // Schedule
+            // Replace with actual data fetching logic
+
+            LazyColumn{
+                items(exercisePlan.size) { index ->
+                    val exerciseInfo = exercisePlan[index]
+                    ScheduleCard(exerciseInfo)
+                }
+            }
+
+            //分割线
+            Divider(color = Color.LightGray, thickness = 1.dp)
+
+            //按钮
+
+            Button(
+                onClick = {
+                    startActivity(Intent(this@MainActivity, QuestionActivity::class.java))
+                },
+                modifier = Modifier.padding(top = 16.dp)
+            ){
+                Text(text = "为我推荐课程")
+            }
+
+
 
 
         }
@@ -267,11 +277,17 @@ class MainActivity : AppCompatActivity() {
 
     @Composable
     fun ScheduleCard(exerciseInfo: ExerciseInfo) {
+        val context = LocalContext.current
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
                 .clickable {
+                    val intent = Intent(context,ExerciseActivity::class.java)
+                    intent.putExtra("exerciseId",exerciseInfo.id)
+                    Log.d(TAG,"ExerciseInfo:$exerciseInfo")
+                    Log.d(TAG,"Intent:$intent")
+                    context.startActivity(intent)
                     // Start another activity on card click
                     //startActivity(Intent(this@MainActivity, DetailActivity::class.java))
                 }

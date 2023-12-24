@@ -50,7 +50,7 @@ class QuestionActivity : ComponentActivity() {
     private lateinit var recommendations: Map<String, Recommendation>
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        //初始化ViewModel，加载问题
         val viewModel: QuestionViewModel by viewModels()
         val questionsData = loadQuestionsFromJson()
         viewModel.setQuestions(questionsData.questions) // 假设 viewModel 只处理问题列表
@@ -96,7 +96,7 @@ class QuestionActivity : ComponentActivity() {
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    IntroductionCard(title = "健康问答", description = "回答下列问题以获取个性化的健康建议。")
+                    IntroductionCard(title = "智能测试", description = "回答下列问题以获取个性化的健康建议。")
 
                     val question = viewModel.currentQuestion
                     question?.let{
@@ -126,6 +126,9 @@ class QuestionActivity : ComponentActivity() {
         }
 
     }
+
+
+
 
     @Composable
     fun IntroductionCard(title: String, description: String) {
@@ -185,11 +188,13 @@ class QuestionActivity : ComponentActivity() {
     fun ConfirmAddToListDialog(courseId: String, onConfirm: (String) -> Unit) {
         // 使用对话框组件询问用户
         AlertDialog(
-            onDismissRequest = { /* 对话框关闭时的处理 */ },
+            onDismissRequest = {/*话题关闭时处理方法*/},
             title = { Text("添加课程到每日清单") },
             text = { Text("是否要将课程 $courseId 添加到您的每日清单中？") },
             confirmButton = {
-                Button(onClick = { onConfirm(courseId) }) {
+                Button(onClick = {
+                    onConfirm(courseId)
+                }) {
                     Text("确认")
                 }
             },
@@ -270,6 +275,7 @@ class QuestionViewModel : ViewModel() {
 
     var showDialog by mutableStateOf(false)
     private var tempCourseId: String? = null
+
 
     private fun showOverwriteDialog(courseId: String) {
         showDialog = true

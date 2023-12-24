@@ -9,6 +9,7 @@
     <uses-feature
         android:name="android.hardware.camera"
         android:required="true" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -18,9 +19,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="false"
         android:theme="@style/Theme.Alive"
-        tools:targetApi="31"
-        android:usesCleartextTraffic="true">
-
+        android:usesCleartextTraffic="true"
+        tools:targetApi="31">
+        <activity
+            android:name=".ExerciseActivity"
+            android:exported="false" />
         <activity
             android:name=".MotionDetectActivity"
             android:exported="false"
@@ -29,27 +32,23 @@
         <activity
             android:name=".CourseActivity"
             android:exported="false"
-            android:label="CourseActivity"/>
-        <activity android:name=".LoginActivity"
+            android:label="CourseActivity" />
+        <activity
+            android:name=".LoginActivity"
             android:exported="false"
-            android:label="登录"
-            />
-        <activity android:name=".RegisterActivity"
-            android:label="注册"
+            android:label="登录" />
+        <activity
+            android:name=".RegisterActivity"
             android:exported="false"
-            />
-
-
+            android:label="注册" />
         <activity
             android:name=".RestActivity"
             android:exported="false"
-            android:label="RestActivity"
-            />
-        <activity android:name=".QuestionActivity"
+            android:label="RestActivity" />
+        <activity
+            android:name=".QuestionActivity"
             android:exported="false"
-            android:label="QuestionActivity"
-            />
-
+            android:label="QuestionActivity" />
         <activity
             android:name=".MainActivity"
             android:exported="true">

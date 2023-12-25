@@ -281,8 +281,6 @@ class MainActivity : AppCompatActivity() {
                     Log.d(TAG,"ExerciseInfo:$exerciseInfo")
                     Log.d(TAG,"Intent:$intent")
                     context.startActivity(intent)
-                    // Start another activity on card click
-                    //startActivity(Intent(this@MainActivity, DetailActivity::class.java))
                 }
         ) {
             Text(

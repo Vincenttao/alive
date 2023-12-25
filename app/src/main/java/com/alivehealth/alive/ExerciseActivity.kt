@@ -3,6 +3,7 @@ package com.alivehealth.alive
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -14,10 +15,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,9 +36,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -53,6 +64,20 @@ data class Exercise(
     val repetitions: Int?,
     val sides: String?,
     val focus_area: String?
+)
+
+val sampleExercise = Exercise(
+    id = 1,
+    name = "伸展胸背部",
+    intensity = "轻度",
+    types = "伸展",
+    posture = "坐位",
+    key_points = "- 双臂向外抬举，感觉胸部抬高 - 伸展胸部、背部肌肉 - 深吸一口气，缓慢放松吐气 ",
+    precautions = " 如果您存在肩背部疼痛，注意活动不要加重症状 ",
+    duration = 20,
+    repetitions = 0,
+    sides = "none",
+    focus_area = "胸部"
 )
 
 
@@ -118,10 +143,20 @@ class ExerciseActivity : ComponentActivity() {
         }
     }
 
+    @Preview(showBackground = true)
+    @Composable
+    fun ExerciseScreenPreview() {
+        setContent {
+            MaterialTheme{
+                ExerciseDetails(exercise = sampleExercise)
+            }
+        }
+    }
 
     @Composable
     fun ExerciseScreen(exerciseId: Int) {
         var exercise by remember { mutableStateOf<Exercise?>(null) }
+        val context = LocalContext.current
 
         // 在 Compose 生命周期内启动协程
         LaunchedEffect(key1 = exerciseId) {
@@ -131,25 +166,42 @@ class ExerciseActivity : ComponentActivity() {
             }
         }
 
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                if (exercise != null) {
-                    ExerciseDetails(exercise = exercise!!)
-                } else {
-                    CircularProgressIndicator()
+        Scaffold(
+            floatingActionButton = {
+                FloatingActionButton(onClick = { /* 启动锻炼的逻辑 */
+                    Toast.makeText(context, "启动锻炼", Toast.LENGTH_SHORT).show()
+                }) {
+                    Text("启动",fontSize = 24.sp)
+                    //Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = "Start Exercise")
+                }
+            }
+        ) {paddingValues -> //接收Scaffold的contentPadding
+            // Surface 和 Box 的内容
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center) {
+                    if (exercise != null) {
+                        ExerciseDetails(exercise = exercise!!)
+                    } else {
+                        CircularProgressIndicator()
+                    }
                 }
             }
         }
     }
+
     @Composable
     fun ExerciseDetails(exercise: Exercise) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
+                .verticalScroll(rememberScrollState())
                 .background(MaterialTheme.colorScheme.background)
         ) {
             Log.d(TAG,"exercise: $exercise")

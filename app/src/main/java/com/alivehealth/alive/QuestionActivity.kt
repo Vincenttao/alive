@@ -8,7 +8,10 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,7 +32,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -98,96 +106,103 @@ class QuestionActivity : ComponentActivity() {
 
     @Composable
     fun QuestionScreen(viewModel: QuestionViewModel = viewModel(), logic: Map<String, String>) {
-        MaterialTheme {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.background
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.backgroud_svg),
+                contentDescription = "Background",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+            )
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopCenter),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
+                Spacer(modifier = Modifier.height(50.dp))
+                Text(
+                    text = "Alive Health健康检测",
+                    style = TextStyle(
+                        color = Color.White,
+                        fontSize = 36.sp // 标题大小
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Card(
                     modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
+                        .background(Color.Transparent)
                 ) {
-                    IntroductionCard(title = "智能测试", description = "回答下列问题以获取个性化的健康建议。")
+                    Text(
+                        text = "请您根据自己的情况，选择下面问题的答案（是或否），我们将根据您的情况，为您推荐适合的套餐",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+                Spacer(modifier = Modifier.height(20.dp))
 
-                    val question = viewModel.currentQuestion
-                    question?.let{
-                        Log.d(TAG,"Displaying question card")
-                        QuestionCard(question = (it), onOptionSelected ={ nextId,answer ->
-                            viewModel.onOptionSelected(nextId, answer)
-                        } )
-                    } ?: run {
-                        val recommendation = viewModel.getRecommendation((logic))
-                        Log.d(TAG,"问答结束。推荐课程：${recommendation ?:"无"}")
+                val question = viewModel.currentQuestion
+                question?.let {
+                    Log.d(TAG, "Displaying question card")
+                    QuestionCard(question = (it), onOptionSelected = { nextId, answer ->
+                        viewModel.onOptionSelected(nextId, answer)
+                    })
+                } ?: run {
+                    val recommendation = viewModel.getRecommendation((logic))
+                    Log.d(TAG, "问答结束。推荐课程：${recommendation ?: "无"}")
 
-                        if (recommendation !=null) {
-                            val courseId = recommendations[recommendation]?.courseId
-                            Log.d(TAG,"Recommendation:$courseId")
+                    if (recommendation != null) {
+                        val courseId = recommendations[recommendation]?.courseId
+                        Log.d(TAG, "Recommendation:$courseId")
 
-                            ConfirmAddToListDialog(
-                                courseId = courseId ?:"",
-                                onConfirm = { newCourseId ->
-                                    viewModel.addToList(this@QuestionActivity, newCourseId)
-                                },
-                                onCancel = {
-                                    navigateToMainActivity()
-                                }
-                            )
-                        } else {
-                            Text("问答结束。推荐课程:无")
-                        }
-                    }
-                    if (viewModel.showDialog) {
-                        OverwriteCourseDialog(viewModel)
+                        ConfirmAddToListDialog(
+                            courseId = courseId ?: "",
+                            onConfirm = { newCourseId ->
+                                viewModel.addToList(this@QuestionActivity, newCourseId)
+                            },
+                            onCancel = {
+                                navigateToMainActivity()
+                            }
+                        )
+                    } else {
+                        Text("问答结束。推荐课程:无")
                     }
                 }
+                if (viewModel.showDialog) {
+                    OverwriteCourseDialog(viewModel)
+                }
             }
-        }
 
-    }
-
-
-
-
-    @Composable
-    fun IntroductionCard(title: String, description: String) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp), // 添加间距分隔介绍卡片和问答卡片
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineMedium
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
         }
     }
+
 
     @Composable
     fun QuestionCard(question: QuestionItem, onOptionSelected: (Int?, String) -> Unit) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
 
                     text = question.text,
-                    style = MaterialTheme.typography.headlineMedium
+                    style = MaterialTheme.typography.bodyLarge
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     question.options.forEach { option ->
@@ -196,6 +211,7 @@ class QuestionActivity : ComponentActivity() {
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(vertical = 8.dp)
+                                .padding(horizontal = 8.dp)
                         ) {
                             Text(option.text)
                         }
@@ -255,6 +271,7 @@ class QuestionActivity : ComponentActivity() {
             }
         )
     }
+
 
 
 
@@ -492,3 +509,4 @@ class QuestionViewModel : ViewModel() {
     }
 
 }
+

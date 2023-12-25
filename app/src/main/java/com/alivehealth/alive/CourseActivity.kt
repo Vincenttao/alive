@@ -1,4 +1,5 @@
 package com.alivehealth.alive
+//通过接受courseId来判断要执行多少次，已经弃用
 
 import android.app.Activity
 import android.content.Intent

@@ -63,15 +63,15 @@ class MotionDetectActivity : AppCompatActivity() {
     private lateinit var poseNameTextView: TextView
     private lateinit var scoreTextView: TextView
     private lateinit var poseCountTextView: TextView
-
+    private var poseDuration = 2000L
+    private var poseExtendedDuration = 1000L
+    private var poseThreshold = 0.8
 
 
     private lateinit var pose: String
     private var count = 0
 
-    private var poseDuration = 2000L
-    private var poseExtendedDuration = 1000L
-    private var poseThreshold = 0.8
+
 
 
     // cameraSource 可能为空，表示它可能没有被初始化。
@@ -87,18 +87,6 @@ class MotionDetectActivity : AppCompatActivity() {
     private var posePerformCount: Int = 0
 
 
-    /**
-     * 这段代码是与 Android 的新的权限请求模型相配合的，特别是在你的应用程序需要请求用户授权某个特定权限（
-     * 如相机、位置等）时启用。
-     * 在 Android 6.0（API 级别 23）及以上版本中，用户需要在运行时而不是在安装时授予权限。为
-     * 了请求权限，应用程序需要在合适的时机（通常是在用户使用某项功能之前）向用户明确地请求权限。
-     * 以下是触发此代码的典型情况：
-     * 1. 用户操作： 用户可能点击了一个按钮来拍照，而拍照功能需要相机权限。在这种情况下，你的应用会调用
-     * requestPermissionLauncher.launch(permission) 方法来请求权限，
-     * 其中 permission 是一个字符串，如 Manifest.permission.CAMERA。
-     * 2. 应用逻辑： 应用的流程可能需要某项权限才能继续。
-     * 例如，在应用启动时，如果应用的主要功能需要访问相机，它可能会自动请求相机权限。
-     */
     private val requestPermissionLauncher =
         registerForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -146,7 +134,6 @@ class MotionDetectActivity : AppCompatActivity() {
             requestPermission()
         }
     }
-
 
     override fun onStart() {
         super.onStart()
@@ -292,6 +279,9 @@ class MotionDetectActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * 向启动当前 Activity 的上一个 Activity 返回结果
+     **/
     private fun returnResultSuccess(){
         val returnIntent = Intent()
         returnIntent.putExtra("resultString", "success")
@@ -314,24 +304,13 @@ class MotionDetectActivity : AppCompatActivity() {
         }
     }
 
-
-
-
-
     private fun speak(text: String) {
         textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
-    }
-
-
-    private fun convertPoseLabels(pair: Pair<String, Float>?): String {
-        if (pair == null) return "empty"
-        return "${pair.first} (${String.format("%.2f", pair.second)})"
     }
 
     private fun isPoseClassifier() {
         cameraSource?.setClassifier(if (isClassifyPose) PoseClassifier.create(this) else null)
     }
-
 
     /**
      * 这段代码的目的是根据条件选择合适的姿势检测器并配置其行为。最后，如果检测器和摄像头源都不为 null，
@@ -392,7 +371,6 @@ class MotionDetectActivity : AppCompatActivity() {
         }
     }
 
-
     private fun requestPermission() {
         when (PackageManager.PERMISSION_GRANTED) {
             ContextCompat.checkSelfPermission(
@@ -410,10 +388,6 @@ class MotionDetectActivity : AppCompatActivity() {
                 )
             }
         }
-    }
-
-    private fun showToast(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 
     /**

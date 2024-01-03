@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
 import android.app.Dialog
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -13,7 +14,6 @@ import android.util.Log
 import android.view.SurfaceView
 import android.view.WindowManager
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -27,18 +27,16 @@ import com.alivehealth.alive.ml.MoveNetMultiPose
 import com.alivehealth.alive.ml.PoseClassifier
 import com.alivehealth.alive.ml.PoseNet
 import com.alivehealth.alive.ml.Type
+import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.LinkedList
 import java.util.Locale
 import kotlin.math.roundToInt
-import kotlin.properties.Delegates
+
+private const val TAG="MotionDetect+测试"
 
 class MotionDetectActivity : AppCompatActivity() {
-
-    private val TAG="MotionDetect+测试"
-
-    // companion object 用于声明静态成员，类似于 Java 中的 static 字段。在这个例子中，它定义了一个字符串常量。
     companion object {
         private const val FRAGMENT_DIALOG = "dialog"
     }
@@ -57,35 +55,25 @@ class MotionDetectActivity : AppCompatActivity() {
     /** 设定默认CPU为处理单元 */
     private var device = Device.CPU
 
-    // 以下各个 lateinit 变量是 UI 组件的声明，它们也会在之后被初始化。保留后续处理
+    // 以下各个 late init 变量是 UI 组件的声明，它们也会在之后被初始化。保留后续处理
 
     private lateinit var textToSpeech: TextToSpeech
     private lateinit var poseNameTextView: TextView
-    private lateinit var scoreTextView: TextView
-    private lateinit var poseCountTextView: TextView
-    private var poseDuration = 2000L
-    private var poseExtendedDuration = 1000L
-    private var poseThreshold = 0.8
+    private lateinit var poseCountText: TextView
+    //private lateinit var poseScoreProgressBar : ProgressBar
+    private lateinit var poseScoreProgressBar : CircularProgressBar//三方进度圈插件
+    //private lateinit var videoView: VideoView
 
 
     private lateinit var pose: String
     private var count = 0
-
-
-
-
     // cameraSource 可能为空，表示它可能没有被初始化。
     private var cameraSource: CameraSource? = null
     private var isClassifyPose = true
 
-    //下面的变量用计算用户锻炼姿势监测结果
-    private val poseSmoother = MovingAverage(10)
-    private var poseStartTime: Long = 0L
-    private var poseLowScoreStartTime = 0L
-    private var isPoseStandardMet = false
-    private var isPoseCompleted = false
-    private var posePerformCount: Int = 0
+    private var activityStartTime : Long = 0L
 
+    private lateinit var poseDetectionManager: PoseDetectionManager
 
     private val requestPermissionLauncher =
         registerForActivityResult(
@@ -106,24 +94,53 @@ class MotionDetectActivity : AppCompatActivity() {
             }
         }
 
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        supportActionBar?.hide() // 隐藏标题栏
+        Log.d(TAG,"onCreate: Activity Created.")
         setContentView(R.layout.activity_motiondetect)
         // keep screen on while app is running
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         surfaceView = findViewById(R.id.surfaceView)
         poseNameTextView = findViewById(R.id.poseNameTextView)
-        scoreTextView = findViewById(R.id.scoreTextView)
-        poseCountTextView = findViewById(R.id.poseCountTextView)
+        poseScoreProgressBar = findViewById(R.id.poseScorePB)
+        poseScoreProgressBar.progressMax = 100f
+        poseCountText = findViewById(R.id.poseCountText)
+
+        /*
+        videoView = findViewById(R.id.videoView)
+        val videoPath = "android.resource://${packageName}/${R.raw.video_1}"
+        videoView.setVideoURI(Uri.parse(videoPath))
+        videoView.setOnPreparedListener { mediaPlayer ->
+            mediaPlayer.isLooping = true // 循环播放
+            videoView.start() // 开始播放
+        }
+        */
 
         pose = intent.getStringExtra("name") ?:""
         count = intent.getIntExtra("count", 0)
-        Log.d(TAG,"Get pose:$pose,count:$count")
+        Log.d(TAG,"onCreate: Received pose: $pose, count: $count")
 
-        poseNameTextView.text = pose
+        //poseNameTextView.text = pose
+
+        activityStartTime = System.currentTimeMillis()
+
+        poseDetectionManager = PoseDetectionManager(
+            context = this,
+            activityStartTime = activityStartTime,
+            targetCount = count,
+            //poseThreshold = poseThreshold,
+            //poseDuration = poseDuration,
+            //poseExtendedDuration = poseExtendedDuration
+        ) { score, currentPose, progressBarValue, progressBarMax ->
+            // 在这里更新 UI，例如显示分数和当前姿势
+            poseNameTextView.text = currentPose
+            poseCountText.text = progressBarValue.toString()
+            poseScoreProgressBar.progressMax = progressBarMax.toFloat()
+            poseScoreProgressBar.progress = score.toFloat()
+            Log.d(TAG,"poseScoreProgressBar=$score")
+        }
 
         textToSpeech = TextToSpeech(this) { status ->
             if (status != TextToSpeech.ERROR) {
@@ -137,176 +154,90 @@ class MotionDetectActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        //Log.d(TAG,"onStart启动")
+        Log.d(TAG,"onStart启动")
         openCamera()
     }
 
     override fun onResume() {
         cameraSource?.resume()
         super.onResume()
+
+        /*
+        if (!videoView.isPlaying) {
+            videoView.start() // 页面可见时重新开始播放
+        }
+
+         */
+
+
+        Log.d(TAG,"onResume started")
     }
 
     override fun onPause() {
+        Log.d(TAG,"onPause started")
         cameraSource?.close()
         cameraSource = null
         super.onPause()
+        //videoView.pause() // 页面不可见时暂停播放
     }
 
     override fun onDestroy() {
         textToSpeech.shutdown()
+        Log.d(TAG,"onPause started")
         super.onDestroy()
     }
 
     // check if permission is granted or not.
     private fun isCameraPermissionGranted(): Boolean {
-        return checkPermission(
+        val isGranted = checkPermission(
             Manifest.permission.CAMERA,
             Process.myPid(),
             Process.myUid()
         ) == PackageManager.PERMISSION_GRANTED
+        Log.d(TAG, "isCameraPermissionGranted: Permission is " + if (isGranted) "granted" else "denied")
+        return isGranted
     }
 
-    // open camera
-    private fun openCamera() {
-        //Log.d(TAG,"OpenCamera ON")
-        if (isCameraPermissionGranted()) {
-            if (cameraSource == null) {
-                cameraSource =
-                    CameraSource(surfaceView, object : CameraSource.CameraSourceListener {
-                        override fun onFPSListener(fps: Int) {
-                            //tvFPS.text = getString(R.string.tfe_pe_tv_fps, fps)
-                        }
 
-                        override fun onDetectedInfo(
-                            personScore: Float?,
-                            poseLabels: List<Pair<String, Float>>?
-                        ) {
-                            val poseScore = poseLabels?.find { it.first == pose }?.second ?: 0f
-                            poseSmoother.add(poseScore)
-                            val avgScore = poseSmoother.average()
-                            val roundScore = (avgScore * 100).roundToInt()
-                            scoreTextView.text = roundScore.toString()
-
-
-                            if (posePerformCount < count) {
-                                //小于count的处理方法
-
-                                if (!isPoseCompleted) {
-                                    //pose已经进入新的评分周期
-                                    if (avgScore >= poseThreshold) {
-                                        //评分大于阈值的处理
-                                        //Log.d(TAG,"AvgScore:$avgScore")
-                                        if (isPoseStandardMet) {
-                                            //评分大于阈值，且如果已经在大于阈值的处理流程中，则计算时长，满足时长则计数
-                                            if (poseStartTime == 0L) {
-                                                poseStartTime = System.currentTimeMillis()
-                                                isPoseCompleted = false
-                                            } else {
-                                                if (System.currentTimeMillis() - poseStartTime >= poseDuration) {
-                                                    isPoseStandardMet = false
-                                                    isPoseCompleted = true
-                                                    posePerformCount++
-                                                    poseCountTextView.text = posePerformCount.toString()
-                                                    Log.d(TAG,"count++:$posePerformCount")
-                                                }
-                                                else {
-                                                    isPoseCompleted = false
-                                                }
-                                            }
-
-                                        } else {
-                                            //如果是首次进入大于阈值的处理流程，则赋值
-                                            isPoseStandardMet = true
-                                            poseStartTime = System.currentTimeMillis()
-
-                                        }
-
-                                    } else {
-                                        //Log.d(TAG,"avgScore:$avgScore")
-                                        //评分小于阈值的处理逻辑
-                                        if (isPoseStandardMet){
-                                            //评分小于阈值，且之前已经满足过标准的
-                                            if (poseLowScoreStartTime == 0L) {
-                                                //已经达成标准，但首次低于阈值处理
-                                                poseLowScoreStartTime = System.currentTimeMillis()
-
-                                            } else {
-                                                //已经不是首次低于阈值，需要判断是否超出最长时间
-                                                if (System.currentTimeMillis() - poseLowScoreStartTime >= poseExtendedDuration) {
-                                                    //如果超出允许错误动作时长，则将isPoseStandardMet置为否，且提醒用户重新开始
-                                                    isPoseStandardMet = false
-                                                    isPoseCompleted = false
-                                                    poseLowScoreStartTime = 0L
-                                                    speak(getString(R.string.pose_restart))
-                                                } else {
-                                                    //如果没有超出允许动作时长，则不处理，可以考虑变色提醒
-                                                }
-                                            }
-                                        } else {
-                                            //评分小于阈值，但之前没有满足过标准，不处理
-                                            //Log.d(TAG,"less than throne, but never ever meet standard")
-                                        }
-                                    }
-                                } else {
-                                    //isPoseCompleted 为true
-                                    if (avgScore < poseThreshold) {
-                                        //如果小于阈值，则重新开始赋值
-                                        isPoseCompleted = false
-                                    }
-                                }
-                            } else {
-                                //等于count的处理方法
-                                speak(getString(R.string.breakMSG))
-                                Log.d(TAG,"Pose finished,poseCount:$posePerformCount,count:$count")
-                                returnResultSuccess()
-                                finish()
-                            }
-                        }
-
-                    }).apply {
-                        prepareCamera()
-                        //Log.d(TAG,"prepareCamera")
+    private fun openCamera(){
+        Log.d(TAG, "openCamera: Attempting to open camera.")
+        if(isCameraPermissionGranted()) {
+            Log.d(TAG, "openCamera: Camera is ready.")
+            if(cameraSource == null) {
+                Log.d(TAG,"cameraSource == null")
+                cameraSource = CameraSource(surfaceView, object : CameraSource.CameraSourceListener {
+                    override fun onFPSListener(fps: Int) {
+                        //待实现
+                        Log.d(TAG,"onFPSListener is called")
                     }
+                    override fun onDetectedInfo(
+                        personScore: Float?,
+                        poseLabels: List<Pair<String, Float>>?
+                    ) {
+                        Log.d(TAG,"onDetectedInfo is on")
+                        poseDetectionManager.updatePoseDetection(poseLabels ?:listOf(), pose)
+
+                    }
+
+                }).apply {
+                    prepareCamera()
+                    Log.d(TAG,"cameraSource init PrepareCamera")
+                }
+
                 isPoseClassifier()
-                //Log.d(TAG,"isPoseClassifier")
                 lifecycleScope.launch(Dispatchers.Main) {
                     cameraSource?.initCamera()
-                    //Log.d(TAG,"camera init")
+                    Log.d(TAG,"camera init")
                 }
+
             }
             createPoseEstimator()
-            //Log.d(TAG,"PoseEstimator")
+            Log.d(TAG,"PoseEstimator")
         }
     }
 
-    /**
-     * 向启动当前 Activity 的上一个 Activity 返回结果
-     **/
-    private fun returnResultSuccess(){
-        val returnIntent = Intent()
-        returnIntent.putExtra("resultString", "success")
-        setResult(Activity.RESULT_OK, returnIntent)
 
-    }
 
-    class MovingAverage(private val size: Int) {
-        private val values = LinkedList<Float>()
-
-        fun add(value: Float) {
-            if (values.size == size) {
-                values.poll()
-            }
-            values.add(value)
-        }
-
-        fun average(): Float {
-            return if (values.isEmpty()) 0f else values.sum() / values.size
-        }
-    }
-
-    private fun speak(text: String) {
-        textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
-    }
 
     private fun isPoseClassifier() {
         cameraSource?.setClassifier(if (isClassifyPose) PoseClassifier.create(this) else null)
@@ -415,4 +346,156 @@ class MotionDetectActivity : AppCompatActivity() {
         }
     }
 
+
+}
+/*
+`PoseDetectionManager` 类用于管理姿势检测的逻辑。它包含以下主要参数和功能：
+
+- `context`: 上下文，通常是当前活动的引用。
+- `activityStartTime`: 活动开始时间，用于计算活动持续时间。
+- `targetCount`: 目标完成次数。
+- `poseThreshold`: 姿势检测的阈值。
+- `poseDuration`: 姿势持续时间。
+- `poseExtendedDuration`: 姿势低于阈值的容忍时间。
+- `isTimeBased`: 是否基于时间来判断完成。
+- `updateUI`: 更新用户界面的函数。
+
+主要函数：
+
+- `updatePoseDetection`: 根据当前姿势和评分更新检测逻辑。
+- `handlePoseScoring`: 处理姿势评分逻辑。
+- `handlePoseAboveThreshold` 和 `handlePoseBelowThreshold`: 处理姿势评分是否达到阈值的情况。
+- `finishPoseDetection`: 完成姿势检测，计算总平均得分和持续时间，关闭当前活动并返回结果。
+
+该类通过评估用户的姿势是否满足设定的阈值和时长来判断是否完成特定的动作或姿势。
+ */
+class PoseDetectionManager(
+    private val context: Context,
+    private val activityStartTime: Long,
+    private val targetCount: Int = 1,
+    private val poseThreshold: Float = 0.8f,
+    private val poseDuration: Long = 1000L,
+    private val poseExtendedDuration: Long = 1000L,
+    private val isTimeBased: Boolean = false,
+    private val updateUI: (Int, String, Int, Int) -> Unit // UI更新函数
+) {
+    private var posePerformCount = 0
+    private var poseStartTime: Long = 0L
+    private var poseLowScoreStartTime: Long = 0L
+    private var isPoseStandardMet = false
+    private var isPoseCompleted = false
+    private val poseSmoother = MovingAverage(10)
+    private var totalScore = 0f
+    private var scoreCount = 0
+
+    fun updatePoseDetection(poseLabels: List<Pair<String, Float>>, currentPose: String) {
+        Log.d(TAG, "updatePoseDetection: Updating pose detection.")
+
+        val poseScore = poseLabels.find { it.first == currentPose }?.second ?: 0f
+        poseSmoother.add(poseScore)
+        val avgScore = poseSmoother.average()
+        val roundScore = (avgScore * 100).roundToInt()
+
+        if(isTimeBased) {
+            val durationTime: Int = if (isPoseStandardMet) {
+                ((System.currentTimeMillis() - poseStartTime) / 1000).toInt() // 将时间差转换为秒
+            } else {
+                0
+            }
+            (context as? Activity)?.runOnUiThread {
+                updateUI(roundScore, currentPose, durationTime, (poseDuration/1000).toInt())
+            }
+            if (posePerformCount < targetCount) {
+                handlePoseScoring(avgScore)
+            } else {
+                finishPoseDetection()
+            }
+
+        } else {
+            (context as? Activity)?.runOnUiThread {
+                updateUI(roundScore, currentPose, posePerformCount,100)
+            }
+            if (posePerformCount < targetCount) {
+                handlePoseScoring(avgScore)
+            } else{
+                finishPoseDetection()
+            }
+        }
+
+    }
+
+    private fun handlePoseScoring(avgScore: Float) {
+        Log.d(TAG, "handlePoseScoring: Handling pose scoring with avgScore: $avgScore")
+        if (!isPoseCompleted) {
+            if (avgScore >= poseThreshold) {
+                totalScore += avgScore
+                scoreCount++
+                handlePoseAboveThreshold()
+            } else {
+                handlePoseBelowThreshold()
+            }
+        } else if (avgScore < poseThreshold) {
+            isPoseCompleted = false
+        }
+    }
+
+    private fun handlePoseAboveThreshold() {
+        if (isPoseStandardMet) {
+            if (System.currentTimeMillis() - poseStartTime >= poseDuration) {
+                posePerformCount++
+                isPoseStandardMet = false
+                isPoseCompleted = true
+            }
+        } else {
+            isPoseStandardMet = true
+            poseStartTime = System.currentTimeMillis()
+        }
+    }
+
+    private fun handlePoseBelowThreshold() {
+        if (isPoseStandardMet) {
+            if (poseLowScoreStartTime == 0L) {
+                poseLowScoreStartTime = System.currentTimeMillis()
+            } else if (System.currentTimeMillis() - poseLowScoreStartTime >= poseExtendedDuration) {
+                isPoseStandardMet = false
+                isPoseCompleted = false
+                poseLowScoreStartTime = 0L
+            }
+        }
+    }
+
+    private fun finishPoseDetection() {
+        Log.d(TAG, "finishPoseDetection: Pose detection finished.")
+        // 按需执行完成动作，例如更新 UI，通知用户等
+        // 调用 Activity 的方法来结束 Activity 并返回结果
+        val averagePoseScore = if (scoreCount > 0) totalScore / scoreCount else 0f
+        val durationTime = ((System.currentTimeMillis()-activityStartTime) / 1000).toInt()
+        val finishTime = System.currentTimeMillis()
+
+        val returnIntent = Intent().apply {
+            putExtra("averagePoseScore", averagePoseScore)
+            putExtra("durationTime", durationTime)
+            putExtra("finishTime", finishTime)
+        }
+
+        (context as? Activity)?.apply {
+            setResult(Activity.RESULT_OK, returnIntent)
+            finish()
+        }
+    }
+
+
+}
+
+class MovingAverage(private val size: Int) {
+    private val values = LinkedList<Float>()
+    fun add(value: Float) {
+        if (values.size == size) {
+            values.poll()
+        }
+        values.add(value)
+    }
+    fun average(): Float {
+        return if (values.isEmpty()) 0f else values.sum() / values.size
+    }
 }

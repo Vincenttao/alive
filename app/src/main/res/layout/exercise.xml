@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    >
+
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center">
+
+        <ImageView
+            android:id="@+id/backgroundImage"
+            android:layout_width="match_parent"
+            android:layout_height="245dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/background"
+            android:adjustViewBounds="true"
+            android:layout_alignParentTop="true"
+            android:contentDescription="BackGround" />
+
+
+        <TextView
+            android:id="@+id/tvExerciseName"
+            android:layout_marginTop="8dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:padding="16dp"
+            android:text="载入中。。。"
+            android:textColor="@android:color/white"
+            android:textSize="36sp"
+            android:textStyle="bold" />
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/tvExerciseName"
+            android:layout_marginLeft="24dp"
+            android:layout_marginRight="24dp"
+            app:cardCornerRadius="24dp"
+            >
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <VideoView
+                        android:id="@+id/videoViewExercise"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="200dp"
+                        android:background="@drawable/round_corner_mask" />
+                </FrameLayout>
+
+
+
+
+                <TextView
+                    android:id="@+id/tvExerciseKP"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/videoViewExercise"
+                    android:layout_margin="8dp"
+                    android:textSize="20sp"
+                    android:text="测试"/>
+
+                <TextView
+                    android:id="@+id/tvExercisePrecautions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/tvExerciseKP"
+                    android:layout_margin="8dp"
+                    android:textSize="20sp"
+                    android:text="测试"/>
+
+                <GridLayout
+                    android:id="@+id/glExercise"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/tvExercisePrecautions"
+                    android:rowCount="2"
+                    android:columnCount="2"
+                    android:padding="16dp"
+                    android:alignmentMode="alignMargins"
+                    android:columnOrderPreserved="false"
+                    >
+
+                    <TextView
+                        android:id="@+id/tvExerciseIntensity"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="测试"
+                        android:padding="8dp"
+                        android:textSize="18sp"
+                        android:layout_columnWeight="1"
+
+                        />
+
+                    <TextView
+                        android:id="@+id/tvExercisePosture"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Text 2"
+                        android:padding="8dp"
+                        android:textSize="18sp"
+                        android:layout_columnWeight="1"
+                        />
+
+                    <TextView
+                        android:id="@+id/tvExerciseDuration"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Text 3"
+                        android:padding="8dp"
+                        android:textSize="18sp"
+                        android:layout_columnWeight="1"
+                        />
+
+                    <TextView
+                        android:id="@+id/tvExerciseRepetitions"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Text 4"
+                        android:padding="8dp"
+                        android:textSize="18sp"
+                        android:layout_columnWeight="1"
+                        />
+                </GridLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/startExerciseButton"
+                    android:layout_width="100dp"
+                    android:layout_height="wrap_content"
+                    android:text="启动锻炼"
+                    android:layout_gravity="center"
+                    android:layout_below="@id/glExercise"
+                    app:cornerRadius="8dp" />
+
+            </LinearLayout>
+
+
+
+        </androidx.cardview.widget.CardView>
+
+
+
+
+    </RelativeLayout>
+
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

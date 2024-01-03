@@ -90,12 +90,12 @@ private suspend fun fetchDailyExerciseData(context: Context, date: String, token
             val requestJson = JSONObject().apply {
                 put("date", date)
             }
-            //Log.d(TAG, "Request body: $requestJson")
+            Log.d(TAG, "Request body: $requestJson")
             outputStream.use { it.write(requestJson.toString().toByteArray()) }
 
             // 获取响应码
             val responseCode = responseCode
-            //Log.d(TAG, "Response code: $responseCode")
+            Log.d(TAG, "Response code: $responseCode")
 
             // 处理响应
             val response = if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -110,13 +110,13 @@ private suspend fun fetchDailyExerciseData(context: Context, date: String, token
 
             responsePair = responseCode to response
         } catch (e: Exception) {
-           // val sw = StringWriter()
-           // val pw = PrintWriter(sw)
-           // e.printStackTrace(pw)
-            //val stackTraceString = sw.toString()
-            //Log.e("MainActivity", "Error during fetching daily exercise data: ${e.message}")
-            //Log.e("MainActivity", "Stack trace: $stackTraceString")
-            //responsePair = 0 to "Error during fetching daily exercise data: ${e.message}\nStack trace: $stackTraceString"
+           val sw = StringWriter()
+           val pw = PrintWriter(sw)
+           e.printStackTrace(pw)
+            val stackTraceString = sw.toString()
+            Log.e("MainActivity", "Error during fetching daily exercise data: ${e.message}")
+            Log.e("MainActivity", "Stack trace: $stackTraceString")
+            responsePair = 0 to "Error during fetching daily exercise data: ${e.message}\nStack trace: $stackTraceString"
         } finally {
             disconnect()
         }
@@ -159,7 +159,7 @@ class MainActivity : AppCompatActivity() {
         LaunchedEffect(selectedDate) {
             val sharedPreferences = getSharedPreferences(getString(R.string.SharedPreferences), MODE_PRIVATE)
             val token = sharedPreferences.getString("token", "")
-            //Log.d(TAG,"in MainScreen() get token:$token")
+            Log.d(TAG,"in MainScreen() get token:$token")
             if (!token.isNullOrEmpty()) {
                 val (responseCode, responseBody) = fetchDailyExerciseData(this@MainActivity, selectedDate.toString(), token)
                 if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -209,6 +209,7 @@ class MainActivity : AppCompatActivity() {
             ){
                 Text(text = "为我推荐课程")
             }
+
 
             Divider(color = Color.LightGray, thickness = 1.dp)
 

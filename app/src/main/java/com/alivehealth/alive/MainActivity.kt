@@ -76,7 +76,7 @@ fun parseExerciseData(jsonString: String): List<ExerciseInfo> {
 private suspend fun fetchDailyExerciseData(context: Context, date: String, token: String): Pair<Int, String> = withContext(Dispatchers.IO) {
     val baseUrl = context.getString(R.string.server_base_url)
     val url = URL(baseUrl+"get_daily_exercise")
-    Log.d("MainActivity", "Make request: $url")
+    //Log.d("MainActivity", "Make request: $url")
 
     var responsePair: Pair<Int, String> = 0 to "Initial response"
 
@@ -90,7 +90,7 @@ private suspend fun fetchDailyExerciseData(context: Context, date: String, token
             val requestJson = JSONObject().apply {
                 put("date", date)
             }
-            Log.d(TAG, "Request body: $requestJson")
+            //Log.d(TAG, "Request body: $requestJson")
             outputStream.use { it.write(requestJson.toString().toByteArray()) }
 
             // 获取响应码
@@ -100,7 +100,7 @@ private suspend fun fetchDailyExerciseData(context: Context, date: String, token
             // 处理响应
             val response = if (responseCode == HttpURLConnection.HTTP_OK) {
                 val responseBody = inputStream.bufferedReader().use { it.readText() }
-                Log.d(TAG, "Response body: $responseBody")
+                //Log.d(TAG, "Response body: $responseBody")
                 responseBody
             } else {
                 val errorBody = errorStream?.bufferedReader()?.use { it.readText() } ?: "Unknown error"

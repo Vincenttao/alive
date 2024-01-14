@@ -3,8 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    >
+    android:layout_height="match_parent">
 
 
     <RelativeLayout
@@ -36,14 +35,23 @@
             android:textSize="36sp"
             android:textStyle="bold" />
 
+        <!-- ScrollView for scrolling content -->
+
+
+
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_below="@id/tvExerciseName"
             android:layout_marginLeft="24dp"
             android:layout_marginRight="24dp"
-            app:cardCornerRadius="24dp"
-            >
+            android:layout_marginBottom="60dp"
+            app:cardCornerRadius="24dp">
+
+            <androidx.core.widget.NestedScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
@@ -57,7 +65,7 @@
                     <VideoView
                         android:id="@+id/videoViewExercise"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="200dp" />
 
                     <View
                         android:layout_width="match_parent"
@@ -67,30 +75,37 @@
 
 
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="16dp"
+                    android:textSize="20sp"
+                    android:text="动作要点："
+                    />
+
 
                 <TextView
                     android:id="@+id/tvExerciseKP"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_below="@id/videoViewExercise"
                     android:layout_margin="8dp"
                     android:textSize="20sp"
-                    android:text="测试"/>
+                    android:padding="8dp"
+                    android:text=""/>
 
                 <TextView
                     android:id="@+id/tvExercisePrecautions"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_below="@id/tvExerciseKP"
-                    android:layout_margin="8dp"
+                    android:layout_margin="16dp"
+                    android:padding="8dp"
                     android:textSize="20sp"
-                    android:text="测试"/>
+                    android:text=""/>
 
                 <GridLayout
                     android:id="@+id/glExercise"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_below="@id/tvExercisePrecautions"
                     android:rowCount="2"
                     android:columnCount="2"
                     android:padding="16dp"
@@ -103,7 +118,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="测试"
+                        android:text=""
                         android:padding="8dp"
                         android:textSize="18sp"
                         android:layout_columnWeight="1"
@@ -115,7 +130,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Text 2"
+                        android:text=""
                         android:padding="8dp"
                         android:textSize="18sp"
                         android:layout_columnWeight="1"
@@ -125,8 +140,7 @@
                         android:id="@+id/tvExerciseDuration"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Text 3"
+                        android:text=""
                         android:padding="8dp"
                         android:textSize="18sp"
                         android:layout_columnWeight="1"
@@ -136,30 +150,30 @@
                         android:id="@+id/tvExerciseRepetitions"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Text 4"
+                        android:text=""
                         android:padding="8dp"
                         android:textSize="18sp"
                         android:layout_columnWeight="1"
                         />
                 </GridLayout>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/startExerciseButton"
-                    android:layout_width="100dp"
-                    android:layout_height="wrap_content"
-                    android:text="启动锻炼"
-                    android:layout_gravity="center"
-                    android:layout_below="@id/glExercise"
-                    app:cornerRadius="8dp" />
-
             </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
 
 
 
         </androidx.cardview.widget.CardView>
 
-
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/startExerciseButton"
+            android:layout_width="200dp"
+            android:layout_height="60dp"
+            android:text="启动锻炼"
+            android:textSize="20sp"
+            android:layout_gravity="center"
+            app:cornerRadius="8dp"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            />
 
 
     </RelativeLayout>

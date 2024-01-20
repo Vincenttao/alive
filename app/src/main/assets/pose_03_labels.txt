@@ -1,0 +1,4 @@
+FullBodyStretch
+MarchingInPlace
+StandingHeelRaise
+StraightLegRaise

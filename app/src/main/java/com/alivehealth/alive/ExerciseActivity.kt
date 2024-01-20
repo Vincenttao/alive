@@ -128,12 +128,19 @@ class ExerciseActivity : ComponentActivity() {
 
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (!videoViewExercise.isPlaying) {
+            videoViewExercise.start()
+        }
+    }
+
     private fun startMotionDetectActivity() {
         val intent = Intent(this, MotionDetectActivity::class.java)
 
         intent.putExtra("name", currentExercise.name_en)
         intent.putExtra("count", currentExercise.repetitions ?:1)
-        intent.putExtra("poseDuration", currentExercise.duration ?:1000)
+        intent.putExtra("poseDuration", currentExercise.duration ?:1)//秒为单位
         intent.putExtra("logic", currentExercise.logic)
         intent.putExtra("poseClassifier", currentExercise.pose_classifier)
 

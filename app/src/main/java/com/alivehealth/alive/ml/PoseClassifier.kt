@@ -32,22 +32,24 @@ class PoseClassifier(
     private val output = interpreter.getOutputTensor(0).shape()//确定输出的格式
 
     companion object {
-        private const val MODEL_FILENAME = "classifier.tflite"//模型目标文件
-        private const val LABELS_FILENAME = "labels.txt"//分类标签
+        //private const val MODEL_FILENAME = "classifier.tflite"//模型目标文件
+        //private const val LABELS_FILENAME = "labels.txt"//分类标签
         private const val CPU_NUM_THREADS = 4
 
-        //使用Context作为一个接口来加载本地资源
-        fun create(context: Context): PoseClassifier {
+        /**
+         * 修改后的 create 方法，接收模型文件名和标签文件名作为参数。
+         */
+        fun create(context: Context, modelFilename: String, labelsFilename: String): PoseClassifier {
             val options = Interpreter.Options().apply {
                 setNumThreads(CPU_NUM_THREADS)
             }
             return PoseClassifier(
                 Interpreter(
                     FileUtil.loadMappedFile(
-                        context, MODEL_FILENAME
+                        context, modelFilename
                     ), options
                 ),
-                FileUtil.loadLabels(context, LABELS_FILENAME)
+                FileUtil.loadLabels(context, labelsFilename)
             )
         }
     }

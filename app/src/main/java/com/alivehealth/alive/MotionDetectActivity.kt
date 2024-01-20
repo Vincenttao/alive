@@ -1,11 +1,8 @@
 package com.alivehealth.alive
 
 import android.Manifest
-import android.app.Activity
 import android.app.AlertDialog
 import android.app.Dialog
-import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Process
@@ -21,27 +18,23 @@ import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import com.alivehealth.alive.camera.CameraSource
 import com.alivehealth.alive.data.Device
+import com.alivehealth.alive.data.PoseDetectionLogic
 import com.alivehealth.alive.ml.ModelType
 import com.alivehealth.alive.ml.MoveNet
 import com.alivehealth.alive.ml.MoveNetMultiPose
 import com.alivehealth.alive.ml.PoseClassifier
 import com.alivehealth.alive.ml.PoseNet
 import com.alivehealth.alive.ml.Type
+import com.alivehealth.alive.motiondetectlogic.PoseDetectionManager
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.util.LinkedList
 import java.util.Locale
-import kotlin.math.roundToInt
 
 private const val TAG="MotionDetect+测试"
-private var frameCount = 0
 
-enum class PoseDetectionLogic {
-    COUNT_ABOVE_THRESHOLD,
-    TIME_ABOVE_THRESHOLD,
-    PURE_TIME
-}
+
+
 
 class MotionDetectActivity : AppCompatActivity() {
     companion object {
@@ -73,9 +66,11 @@ class MotionDetectActivity : AppCompatActivity() {
 
 
     private lateinit var pose: String
+    private lateinit var poseClassifier: String
     // cameraSource 可能为空，表示它可能没有被初始化。
     private var cameraSource: CameraSource? = null
     private val isClassifyPose = true
+
 
     private lateinit var poseDetectionManager: PoseDetectionManager
 
@@ -123,10 +118,10 @@ class MotionDetectActivity : AppCompatActivity() {
 
         pose = intent.getStringExtra("name") ?:""
         val count = intent.getIntExtra("count", 1)
-        val poseDuration = intent.getIntExtra("poseDuration",1000).toLong()
+        val poseDuration = (intent.getIntExtra("poseDuration",1).toLong() )* 1000
         val logicString = intent.getStringExtra("logic") ?: "COUNT_ABOVE_THRESHOLD" // 默认值
         val detectionLogic = enumValueOf<PoseDetectionLogic>(logicString)
-        val poseClassifier = intent.getStringExtra("poseClassifier") ?: "pose_01"
+        poseClassifier = intent.getStringExtra("poseClassifier") ?: "pose_01"
 
         Log.d(TAG,"onCreate: Received pose: $pose, count: $count; poseDuration:$poseDuration; logicString:${logicString}; poseClassifier:$poseClassifier")
         Log.d(TAG,"detectLogic:$detectionLogic")
@@ -139,17 +134,20 @@ class MotionDetectActivity : AppCompatActivity() {
             context = this,
             activityStartTime = activityStartTime,
             targetCount = count,
-            poseDuration = poseDuration,
+            poseDurationThreshold = poseDuration,
             detectionLogic = detectionLogic
             //poseThreshold = poseThreshold,
             //poseDuration = poseDuration,
             //poseExtendedDuration = poseExtendedDuration
         ) { progressBarProgress:Int, currentPose:String, textInMiddle:String, progressBarMax:Int ->
             // 在这里更新 UI，例如显示分数和当前姿势
-            poseNameTextView.text = currentPose
-            textInMiddleTextView.text = textInMiddle
-            poseScoreProgressBar.progressMax = progressBarMax.toFloat()
-            poseScoreProgressBar.progress = progressBarProgress.toFloat()
+            runOnUiThread{
+                poseNameTextView.text = currentPose
+                textInMiddleTextView.text = textInMiddle
+                poseScoreProgressBar.progressMax = progressBarMax.toFloat()
+                poseScoreProgressBar.progress = progressBarProgress.toFloat()
+            }
+
         }
 
         textToSpeech = TextToSpeech(this) { status ->
@@ -247,7 +245,9 @@ class MotionDetectActivity : AppCompatActivity() {
 
 
     private fun isPoseClassifier() {
-        cameraSource?.setClassifier(if (isClassifyPose) PoseClassifier.create(this) else null)
+        val modelFilename = "$poseClassifier.tflite"
+        val labelsFilename = "${poseClassifier}_labels.txt"
+        cameraSource?.setClassifier(if (isClassifyPose) PoseClassifier.create(this,modelFilename,labelsFilename) else null)
     }
 
     /**
@@ -355,183 +355,4 @@ class MotionDetectActivity : AppCompatActivity() {
     }
 
 
-}
-/*
-`PoseDetectionManager` 类用于管理姿势检测的逻辑。它包含以下主要参数和功能：
-
-- `context`: 上下文，通常是当前活动的引用。
-- `activityStartTime`: 活动开始时间，用于计算活动持续时间。
-- `targetCount`: 目标完成次数。
-- `poseThreshold`: 姿势检测的阈值。
-- `poseDuration`: 姿势持续时间。
-- `poseExtendedDuration`: 姿势低于阈值的容忍时间。
-- `isTimeBased`: 是否基于时间来判断完成。
-- `updateUI`: 更新用户界面的函数。
-
-主要函数：
-
-- `updatePoseDetection`: 根据当前姿势和评分更新检测逻辑。
-- `handlePoseScoring`: 处理姿势评分逻辑。
-- `handlePoseAboveThreshold` 和 `handlePoseBelowThreshold`: 处理姿势评分是否达到阈值的情况。
-- `finishPoseDetection`: 完成姿势检测，计算总平均得分和持续时间，关闭当前活动并返回结果。
-
-该类通过评估用户的姿势是否满足设定的阈值和时长来判断是否完成特定的动作或姿势。
- */
-class PoseDetectionManager(
-    private val context: Context,
-    private val activityStartTime: Long,
-    private val targetCount: Int = 1,
-    private val poseThreshold: Float = 0.8f,
-    private val poseDuration: Long,
-    private val poseExtendedDuration: Long = 1000L,
-    private val detectionLogic: PoseDetectionLogic,
-    private val updateUI: (progressBarProgress:Int, currentPose:String, textInMiddle:String, progressBarMax:Int) -> Unit // UI更新函数
-) {
-    private var posePerformCount = 0
-    private var poseStartTime: Long = 0L
-    private var poseLowScoreStartTime: Long = 0L
-    private var isPoseStandardMet = false
-    private var isPoseCompleted = false
-    private val poseSmoother = MovingAverage(10)
-    private var totalScore = 0f
-    private var scoreCount = 0
-
-    fun updatePoseDetection(poseLabels: List<Pair<String, Float>>, currentPose: String) {
-        frameCount++
-        if (frameCount % 100 == 0){
-            Log.d(TAG, "updatePoseDetection: Updating pose detection.")
-            Log.d(TAG,"Pose detection result:$poseLabels")
-        }
-
-
-        val poseScore = poseLabels.find { it.first == currentPose }?.second ?: 0f
-        poseSmoother.add(poseScore)
-        val avgScore = poseSmoother.average()
-        val roundScore = (avgScore * 100).roundToInt()
-
-        when (detectionLogic) {
-            PoseDetectionLogic.COUNT_ABOVE_THRESHOLD -> {
-                (context as? Activity)?.runOnUiThread{
-                    updateUI(roundScore, currentPose, posePerformCount.toString(), 100)
-                    }
-                if (posePerformCount < targetCount){
-                    handlePoseScoring((avgScore))
-                } else{
-                    Log.d(TAG,"Target count reached: $posePerformCount")
-                    finishPoseDetection()
-                }
-            }
-            PoseDetectionLogic.TIME_ABOVE_THRESHOLD -> {
-                val durationTime: Int = if (isPoseStandardMet) {
-                    ((System.currentTimeMillis() - poseStartTime )/ 1000).toInt()
-                } else {
-                    0
-                }
-                (context as? Activity)?.runOnUiThread{
-                    updateUI(roundScore, currentPose, durationTime.toString(), 100)
-                }
-                if (posePerformCount < targetCount){ //默认为1
-                    handlePoseScoring(avgScore)
-                } else {
-                    Log.d(TAG,"Time reached:$durationTime")
-                    finishPoseDetection()
-                }
-            }
-            PoseDetectionLogic.PURE_TIME -> {
-                val currentTime = System.currentTimeMillis()
-                val elapsedTime = currentTime - activityStartTime
-
-                // 更新 UI，例如显示已过去的时间
-                (context as? Activity)?.runOnUiThread {
-                    updateUI(0, currentPose, elapsedTime.toString(),100)
-                }
-
-                // 检查是否达到目标时间
-                if (elapsedTime >= poseDuration * targetCount) {
-                    finishPoseDetection()
-                }
-
-            }
-        }
-
-    }
-
-
-
-    private fun handlePoseScoring(avgScore: Float) {
-        if(frameCount % 100 ==0){
-            Log.d(TAG, "handlePoseScoring: Handling pose scoring with avgScore: $avgScore")
-        }
-        if (!isPoseCompleted) {
-            if (avgScore >= poseThreshold) {
-                totalScore += avgScore
-                scoreCount++
-                handlePoseAboveThreshold()
-            } else {
-                handlePoseBelowThreshold()
-            }
-        } else if (avgScore < poseThreshold) {
-            isPoseCompleted = false
-        }
-    }
-
-    private fun handlePoseAboveThreshold() {
-        if (isPoseStandardMet) {
-            if (System.currentTimeMillis() - poseStartTime >= poseDuration) {
-                posePerformCount++
-                isPoseStandardMet = false
-                isPoseCompleted = true
-            }
-        } else {
-            isPoseStandardMet = true
-            poseStartTime = System.currentTimeMillis()
-        }
-    }
-
-    private fun handlePoseBelowThreshold() {
-        if (isPoseStandardMet) {
-            if (poseLowScoreStartTime == 0L) {
-                poseLowScoreStartTime = System.currentTimeMillis()
-            } else if (System.currentTimeMillis() - poseLowScoreStartTime >= poseExtendedDuration) {
-                isPoseStandardMet = false
-                isPoseCompleted = false
-                poseLowScoreStartTime = 0L
-            }
-        }
-    }
-
-    private fun finishPoseDetection() {
-        Log.d(TAG, "finishPoseDetection: Pose detection finished.")
-        // 按需执行完成动作，例如更新 UI，通知用户等
-        // 调用 Activity 的方法来结束 Activity 并返回结果
-        val averagePoseScore = if (scoreCount > 0) totalScore / scoreCount else 0f
-        val durationTime = ((System.currentTimeMillis()-activityStartTime) / 1000).toInt()
-        val finishTime = System.currentTimeMillis()
-
-        val returnIntent = Intent().apply {
-            putExtra("averagePoseScore", averagePoseScore)
-            putExtra("durationTime", durationTime)
-            putExtra("finishTime", finishTime)
-        }
-
-        (context as? Activity)?.apply {
-            setResult(Activity.RESULT_OK, returnIntent)
-            finish()
-        }
-    }
-
-
-}
-
-class MovingAverage(private val size: Int) {
-    private val values = LinkedList<Float>()
-    fun add(value: Float) {
-        if (values.size == size) {
-            values.poll()
-        }
-        values.add(value)
-    }
-    fun average(): Float {
-        return if (values.isEmpty()) 0f else values.sum() / values.size
-    }
 }

@@ -106,18 +106,10 @@ class MotionDetectActivity : AppCompatActivity() {
         poseScoreProgressBar = findViewById(R.id.poseScorePB)
         textInMiddleTextView = findViewById(R.id.textInMidlle)
 
-        /*
-        videoView = findViewById(R.id.videoView)
-        val videoPath = "android.resource://${packageName}/${R.raw.video_1}"
-        videoView.setVideoURI(Uri.parse(videoPath))
-        videoView.setOnPreparedListener { mediaPlayer ->
-            mediaPlayer.isLooping = true // 循环播放
-            videoView.start() // 开始播放
-        }
-        */
 
         pose = intent.getStringExtra("name") ?:""
         val count = intent.getIntExtra("count", 1)
+        val exerciseId = intent.getIntExtra("exerciseId",0)
         val poseDuration = (intent.getIntExtra("poseDuration",1).toLong() )* 1000
         val logicString = intent.getStringExtra("logic") ?: "COUNT_ABOVE_THRESHOLD" // 默认值
         val detectionLogic = enumValueOf<PoseDetectionLogic>(logicString)
@@ -132,6 +124,7 @@ class MotionDetectActivity : AppCompatActivity() {
 
         poseDetectionManager = PoseDetectionManager(
             context = this,
+            exerciseId = exerciseId,
             activityStartTime = activityStartTime,
             targetCount = count,
             poseDurationThreshold = poseDuration,

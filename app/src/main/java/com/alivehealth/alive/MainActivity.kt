@@ -72,7 +72,7 @@ fun parseExerciseData(jsonString: String): List<ExerciseInfo> {
     return dailyExercise.exercises_info.filter { it.completed == 0 } // 过滤掉已完成的锻炼
 }
 
-
+//TODO 加入历史信息判断
 private suspend fun fetchDailyExerciseData(context: Context, date: String, token: String): Pair<Int, String> = withContext(Dispatchers.IO) {
     val baseUrl = context.getString(R.string.server_base_url)
     val url = URL(baseUrl+"get_daily_exercise")

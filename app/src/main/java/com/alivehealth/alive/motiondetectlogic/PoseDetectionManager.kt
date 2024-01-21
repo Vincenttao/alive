@@ -4,9 +4,26 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat.getString
+import com.alivehealth.alive.MainActivity
+import com.alivehealth.alive.R
 import com.alivehealth.alive.data.PoseDetectionLogic
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.LinkedList
+import java.util.Locale
 import kotlin.math.roundToInt
+
+
 
 /*
 `PoseDetectionManager` 类用于管理姿势检测的逻辑。它包含以下主要参数和功能：
@@ -31,6 +48,7 @@ import kotlin.math.roundToInt
  */
 class PoseDetectionManager(
     private val context: Context,
+    private val exerciseId: Int,
     private val activityStartTime: Long,
     private val targetCount: Int = 1,
     private val poseThreshold: Float = 0.7f,
@@ -50,6 +68,11 @@ class PoseDetectionManager(
     private var scoreCount = 0
     private var frameCount = 0
     private val TAG = "PoseDetectionManager 测试"
+
+    private val coroutineScope = CoroutineScope(Dispatchers.Main)
+
+    private var isUploaded = false
+
 
 
     fun updatePoseDetection(poseLabels: List<Pair<String, Float>>, currentPose: String) {
@@ -177,26 +200,115 @@ class PoseDetectionManager(
 
 
 
+//TODO 需要增加一个没有完成机制
 
     private fun finishPoseDetection() {
+        if (isUploaded) {
+            return //如果已经上传过，则不再执行
+        }
+
+        isUploaded = true //设置标志为已上传
+
         Log.d(TAG, "finishPoseDetection: Pose detection finished.")
+
         // 按需执行完成动作，例如更新 UI，通知用户等
         // 调用 Activity 的方法来结束 Activity 并返回结果
-        val averagePoseScore = if (scoreCount > 0) totalScore / scoreCount else 0f
-        val durationTime = ((System.currentTimeMillis()-activityStartTime) / 1000).toInt()
-        val finishTime = System.currentTimeMillis()
+        coroutineScope.launch {
+            val sharedPreferences = context.getSharedPreferences(context.getString(R.string.SharedPreferences), Context.MODE_PRIVATE)
+            val token = sharedPreferences.getString("token","")
+            if(token.isNullOrEmpty()){
+                Log.e(TAG,"Token not found")
+                //return@launch
+            }
+            val averagePoseScore = if (scoreCount > 0) totalScore / scoreCount else 0f
+            val durationTime = ((System.currentTimeMillis() - activityStartTime) / 1000).toInt()
+            val dateCompleted = SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+                Locale.getDefault()).format(Date())
 
-        val returnIntent = Intent().apply {
-            putExtra("averagePoseScore", averagePoseScore)
-            putExtra("durationTime", durationTime)
-            putExtra("finishTime", finishTime)
+            try {
+                val (responseCode, responseMessage) = uploadExerciseData(
+                    context,
+                    exerciseId = exerciseId,
+                    dateCompleted,
+                    averagePoseScore.roundToInt(),
+                    durationTime,
+                    completed = true,
+                    userToken= token.toString())
+                Log.d(TAG,"Upload response: $responseCode, message: $responseMessage")
+            } catch (e:Exception) {
+                Log.e(TAG,"Error uploading exercise history data: ${e.message}")
+            }
+
+            // 结束上传后直接返回MainActivity并清除之前的活动栈
+            val intent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+
+            withContext(Dispatchers.Main) {
+                context.startActivity(intent)
+                (context as? Activity)?.finish()
+            }
+
+
         }
 
-        (context as? Activity)?.apply {
-            setResult(Activity.RESULT_OK, returnIntent)
-            finish()
-        }
     }
+
+    private suspend fun uploadExerciseData(
+        context: Context,
+        exerciseId: Int,
+        dateCompleted: String,
+        score: Int,
+        durationTime: Int,//秒
+        completed: Boolean,
+        userToken: String // 添加一个用于身份验证的token参数
+    ): Pair<Int, String> = withContext(Dispatchers.IO) {
+        val baseUrl = context.getString(R.string.server_base_url) // 你的服务器基地址
+        val url = URL("$baseUrl/add_exercise_history")
+
+        var responsePair: Pair<Int, String> = 0 to "Initial response"
+
+        (url.openConnection() as HttpURLConnection).apply {
+            try {
+                requestMethod = "POST"
+                doOutput = true // 允许向服务器输出
+                setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                setRequestProperty("Authorization", "Bearer $userToken") // 携带用户的token
+
+                // 构建 JSON 数据
+                val json = JSONObject().apply {
+                    put("exercise_id", exerciseId)
+                    put("date_completed", dateCompleted)
+                    put("score", score)
+                    put("durationtime", durationTime)
+                    put("completed", completed)
+                }
+
+                OutputStreamWriter(outputStream).use { writer ->
+                    writer.write(json.toString())
+                    writer.flush()
+                }
+
+                // 处理响应
+                val responseCode = responseCode
+                val response = if (responseCode == HttpURLConnection.HTTP_CREATED) {
+                    inputStream.bufferedReader().use { it.readText() }
+                } else {
+                    errorStream?.bufferedReader()?.use { it.readText() } ?: "Unknown error"
+                }
+
+                responsePair = responseCode to response
+            } catch (e: Exception) {
+                Log.e("HTTP_POST", "Error during uploading exercise data: ${e.message}")
+                responsePair = 0 to "Error during uploading exercise data: ${e.message}"
+            } finally {
+                disconnect()
+            }
+        }
+
+        responsePair
+    }
+
 
 
 }

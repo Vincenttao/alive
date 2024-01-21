@@ -139,6 +139,8 @@ class ExerciseActivity : ComponentActivity() {
         val intent = Intent(this, MotionDetectActivity::class.java)
 
         intent.putExtra("name", currentExercise.name_en)
+        intent.putExtra("name_cn", currentExercise.name)
+        intent.putExtra("exerciseId", currentExercise.id)
         intent.putExtra("count", currentExercise.repetitions ?:1)
         intent.putExtra("poseDuration", currentExercise.duration ?:1)//秒为单位
         intent.putExtra("logic", currentExercise.logic)
@@ -175,6 +177,7 @@ class ExerciseActivity : ComponentActivity() {
             val (responseCode, responseString) = fetchExerciseDetails(this@ExerciseActivity, exerciseId)
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 val exercise = parseExerciseJson(responseString)
+                Log.d(TAG,"exercise get from server:$exercise")
                 exercise?.let {
                     withContext(Dispatchers.Main) {
                         updateUI(it)

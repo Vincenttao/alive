@@ -34,9 +34,20 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 import android.util.Log
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -57,6 +68,14 @@ data class ExerciseInfo(
 data class DailyExercise(
     val course_info: CourseInfo,
     val exercises_info: List<ExerciseInfo>
+)
+
+data class ExerciseHistory(
+    val exercise_id: Int,
+    val date_completed: String,
+    val score: Int,
+    val durationtime: Int,
+    val completed: Int // Assuming 0 for not completed, 1 for completed
 )
 
 data class CourseInfo(
@@ -125,6 +144,40 @@ private suspend fun fetchDailyExerciseData(context: Context, date: String, token
     responsePair
 }
 
+private suspend fun fetchUserExerciseHistory(context: Context, date: String, token: String): List<ExerciseHistory> = withContext(Dispatchers.IO) {
+    val baseUrl = context.getString(R.string.server_base_url)
+    val url = URL(baseUrl + "exercise_history")
+    var exerciseHistoryList: List<ExerciseHistory> = listOf()
+
+    (url.openConnection() as HttpURLConnection).apply {
+        try {
+            requestMethod = "POST"
+            setRequestProperty("Content-Type", "application/json")
+            setRequestProperty("Authorization", "Bearer $token")
+
+            val requestJson = JSONObject().apply {
+                put("date", date)
+            }
+            outputStream.use { it.write(requestJson.toString().toByteArray()) }
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val responseBody = inputStream.bufferedReader().use { it.readText() }
+                val gson = Gson()
+                exerciseHistoryList = gson.fromJson(responseBody, Array<ExerciseHistory>::class.java).toList()
+                Log.d(TAG,"Exercise history in date:$date, $exerciseHistoryList")
+            } else {
+                Log.e(TAG, "Error fetching user exercise history: HTTP $responseCode")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during fetching user exercise history: ${e.message}")
+        } finally {
+            disconnect()
+        }
+    }
+
+    exerciseHistoryList
+}
+
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -155,6 +208,7 @@ class MainActivity : AppCompatActivity() {
     fun MainScreen() {
         var selectedDate by remember { mutableStateOf(LocalDate.now()) }
         var exercisePlan by remember { mutableStateOf<List<ExerciseInfo>>(listOf()) }
+        var showExerciseDetails by remember{ mutableStateOf(false) }
 
         LaunchedEffect(selectedDate) {
             val sharedPreferences = getSharedPreferences(getString(R.string.SharedPreferences), MODE_PRIVATE)
@@ -166,13 +220,26 @@ class MainActivity : AppCompatActivity() {
                     // 解析responseBody并更新exercisePlan
                     val parsedData = parseExerciseData(responseBody) // 根据您的JSON格式来解析数据
                     exercisePlan = parsedData
+                    Log.d(TAG,"exercisePlan without history:$exercisePlan")
                 }
+            }
+            if (!token.isNullOrEmpty()) {
+                val exerciseHistory = fetchUserExerciseHistory(this@MainActivity, selectedDate.toString(), token)
+                //更新exercisePlan，标记已完成和未完成的项目
+                exercisePlan = exercisePlan.map{ exercise ->
+                    val isCompleted = exerciseHistory.any { history ->
+                        history.exercise_id == exercise.id && history.completed == 1
+                    }
+                    exercise.copy(completed = if (isCompleted) 1 else 0)
+                }
+                Log.d(TAG,"Exercise plan with history:$exercisePlan")
+                exercisePlan = exercisePlan.sortedByDescending { it.completed }
             }
         }
 
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -182,49 +249,121 @@ class MainActivity : AppCompatActivity() {
                 contentDescription = "Logo"
             )
 
-            Button(
-                onClick = {
-                    // 获取SharedPreferences编辑器
-                    val sharedPreferences = getSharedPreferences(getString(R.string.SharedPreferences), MODE_PRIVATE)
-                    val editor = sharedPreferences.edit()
-                    // 清除token
-                    editor.remove("token")
-                    editor.apply()
-
-                    // 返回到登录屏幕
-                    startActivity(Intent(this@MainActivity, LoginActivity::class.java))
-                    // 结束当前的MainActivity
-                    finish()
-                },
-                modifier = Modifier.padding(top = 16.dp)
-            ){
-                Text(text = "退出登录")
-            }
-
-            Button(
-                onClick = {
-                    startActivity(Intent(this@MainActivity, QuestionActivity::class.java))
-                },
-                modifier = Modifier.padding(top = 16.dp)
-            ){
-                Text(text = "为我推荐课程")
-            }
-
-
-            Divider(color = Color.LightGray, thickness = 1.dp)
-
             // Calendar
             WeekCalendar()
 
             // Schedule
             // Replace with actual data fetching logic
 
-            LazyColumn{
-                items(exercisePlan.size) { index ->
-                    val exerciseInfo = exercisePlan[index]
-                    ScheduleCard(exerciseInfo)
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .clickable { showExerciseDetails = !showExerciseDetails },
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Row(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    val totalExercises = exercisePlan.size
+                    val completedExercises = exercisePlan.count { it.completed == 1 }
+                    val remainingExercises = totalExercises - completedExercises
+
+                    //今日待完成
+                    Column(modifier = Modifier.weight(2f)) {
+                        Text(
+                            text = "今日待完成锻炼：$totalExercises 条",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            text = "未完成：$remainingExercises 条",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+
+                    VerticalDivider()
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                        Text("点击查看", style = MaterialTheme.typography.bodyLarge)
+
+                        Icon(
+                            imageVector = Icons.Filled.ArrowDropDown,
+                            contentDescription = "查看详情",
+                            modifier = Modifier.size(48.dp)
+                        )
+
+
+                    }
                 }
             }
+
+            if (showExerciseDetails) {
+                LazyColumn{
+                    items(exercisePlan.size) { index ->
+                        val exerciseInfo = exercisePlan[index]
+                        ScheduleCard(exerciseInfo, exerciseInfo.completed == 1)
+                    }
+                }
+            }
+
+            Divider(color = Color.LightGray, thickness = 1.dp,
+                modifier = Modifier
+                    .padding(8.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ){
+                Button(
+                    onClick = {
+                        // 获取SharedPreferences编辑器
+                        val sharedPreferences = getSharedPreferences(getString(R.string.SharedPreferences), MODE_PRIVATE)
+                        val editor = sharedPreferences.edit()
+                        // 清除token
+                        editor.remove("token")
+                        editor.apply()
+
+                        // 返回到登录屏幕
+                        startActivity(Intent(this@MainActivity, LoginActivity::class.java))
+                        // 结束当前的MainActivity
+                        finish()
+                    },
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .padding(end = 8.dp)
+                        .weight(1f)
+                ){
+                    Text(text = "退出登录")
+                }
+
+                Button(
+                    onClick = {
+                        startActivity(Intent(this@MainActivity, QuestionActivity::class.java))
+                    },
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .padding(start = 8.dp)
+                        .weight(1f)
+                ){
+                    Text(text = "推荐课程")
+                }
+            }
+
+
+
+
+
+
+
+
+
         }
     }
 
@@ -270,25 +409,44 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun ScheduleCard(exerciseInfo: ExerciseInfo) {
+    fun ScheduleCard(exerciseInfo: ExerciseInfo, isCompleted: Boolean) {
         val context = LocalContext.current
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
-                .clickable {
-                    val intent = Intent(context,ExerciseActivity::class.java)
-                    intent.putExtra("exerciseId",exerciseInfo.id)
-                    Log.d(TAG,"ExerciseInfo:$exerciseInfo")
-                    Log.d(TAG,"Intent:$intent")
-                    context.startActivity(intent)
+                .clickable(enabled = !isCompleted) {
+                    if (!isCompleted) {
+                        val intent = Intent(context, ExerciseActivity::class.java)
+                        intent.putExtra("exerciseId", exerciseInfo.id)
+                        Log.d(TAG, "ExerciseInfo:$exerciseInfo")
+                        Log.d(TAG, "Intent:$intent")
+                        context.startActivity(intent)
+                    }
+
                 }
         ) {
-            Text(
-                text = exerciseInfo.name,
-                modifier = Modifier.padding(16.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ){
+                Text(text = exerciseInfo.name)
+                Text(
+                    text = if(isCompleted) "(已完成)" else "(未完成)",
+                    color = if(isCompleted) Color.Gray else Color.Black
+                )
+            }
         }
     }
 
+    @Composable
+    fun VerticalDivider(){
+        Spacer(
+            modifier = Modifier
+                .width(1.dp)
+                .background(Color.LightGray)
+        )
+    }
 }

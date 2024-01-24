@@ -88,12 +88,23 @@
 
                 </RelativeLayout>
 
-                <View
+                <RelativeLayout
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginLeft="24dp"
-                    android:layout_marginRight="24dp"
-                    android:background="@color/light_gray"/>
+                    android:layout_height="wrap_content"
+                    >
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/skipExerciseButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerInParent="true"
+                    android:text="我已经完成锻炼，点击直接结束"
+                    app:cornerRadius="16dp"
+                    android:textColor="@color/white"
+                    app:backgroundTint="@color/purple_200"
+                    style="@style/Widget.Material3.Button"
+                    tools:ignore="ObsoleteLayoutParam" />
+    </RelativeLayout>
 
                 <!-- 第二个 RelativeLayout -->
                 <RelativeLayout

@@ -156,7 +156,7 @@ class QuestionActivity : ComponentActivity() {
                     })
                 } ?: run {
                     val recommendation = viewModel.getRecommendation((logic))
-                    Log.d(TAG, "问答结束。推荐课程：${recommendation ?: "无"}")
+                    Log.d(TAG, "检测结束。推荐课程：${recommendation ?: "无"}")
 
                     if (recommendation != null) {
                         val courseId = recommendations[recommendation]?.courseId
@@ -172,7 +172,7 @@ class QuestionActivity : ComponentActivity() {
                             }
                         )
                     } else {
-                        Text("问答结束。推荐课程:无")
+                        Text("检测结束。推荐课程:无")
                     }
                 }
                 if (viewModel.showDialog) {

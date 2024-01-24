@@ -26,6 +26,7 @@ import com.alivehealth.alive.ml.PoseClassifier
 import com.alivehealth.alive.ml.PoseNet
 import com.alivehealth.alive.ml.Type
 import com.alivehealth.alive.motiondetectlogic.PoseDetectionManager
+import com.google.android.material.button.MaterialButton
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -34,6 +35,8 @@ import java.util.Locale
 private const val TAG="MotionDetect+测试"
 
 
+
+//
 
 
 class MotionDetectActivity : AppCompatActivity() {
@@ -63,6 +66,8 @@ class MotionDetectActivity : AppCompatActivity() {
     //private lateinit var poseScoreProgressBar : ProgressBar
     private lateinit var poseScoreProgressBar : CircularProgressBar//三方进度圈插件
     //private lateinit var videoView: VideoView
+
+    private lateinit var skipExerciseButton: MaterialButton
 
 
     private lateinit var pose: String
@@ -98,6 +103,7 @@ class MotionDetectActivity : AppCompatActivity() {
         supportActionBar?.hide() // 隐藏标题栏
         Log.d(TAG,"onCreate: Activity Created.")
         setContentView(R.layout.activity_motiondetect)
+
         // keep screen on while app is running
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
@@ -105,6 +111,10 @@ class MotionDetectActivity : AppCompatActivity() {
         poseNameTextView = findViewById(R.id.poseNameTextView)
         poseScoreProgressBar = findViewById(R.id.poseScorePB)
         textInMiddleTextView = findViewById(R.id.textInMidlle)
+
+        skipExerciseButton = findViewById((R.id.skipExerciseButton))
+
+        setupSkipExerciseButton()
 
 
         pose = intent.getStringExtra("name") ?:""
@@ -142,6 +152,10 @@ class MotionDetectActivity : AppCompatActivity() {
             }
 
         }
+
+
+
+
 
         textToSpeech = TextToSpeech(this) { status ->
             if (status != TextToSpeech.ERROR) {
@@ -235,6 +249,11 @@ class MotionDetectActivity : AppCompatActivity() {
     }
 
 
+    private fun setupSkipExerciseButton(){
+        skipExerciseButton.setOnClickListener {
+            poseDetectionManager.finishPoseDetection()
+        }
+    }
 
 
     private fun isPoseClassifier() {

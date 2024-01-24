@@ -55,7 +55,8 @@ class PoseDetectionManager(
     private val poseDurationThreshold: Long,
     private val poseExtendedDuration: Long = 1000L,//毫秒
     private val detectionLogic: PoseDetectionLogic,
-    private val updateUI: (progressBarProgress:Int, currentPose:String, textInMiddle:String, progressBarMax:Int) -> Unit // UI更新函数
+    private val updateUI: (progressBarProgress:Int, currentPose:String, textInMiddle:String, progressBarMax:Int) -> Unit
+//todo 修改UI更新逻辑，以圆环颜色来区别是否达标
 ) {
     private var posePerformCount = 0
     private var poseStartTime: Long = 0L
@@ -144,7 +145,7 @@ class PoseDetectionManager(
     }
 
 
-
+    //todo 不能简单显示一个数字，需要有待完成n个动作，完成x个动作，还有提示用户坚持多长时间
     private fun updateForCountAboveThreshold(roundScore: Int, currentPose: String, avgScore: Float) {
         updateUI(roundScore,currentPose,posePerformCount.toString(),100)
         fun handlePoseAboveThreshold(){
@@ -202,7 +203,7 @@ class PoseDetectionManager(
 
 //TODO 需要增加一个没有完成机制
 
-    private fun finishPoseDetection() {
+    fun finishPoseDetection() {
         if (isUploaded) {
             return //如果已经上传过，则不再执行
         }

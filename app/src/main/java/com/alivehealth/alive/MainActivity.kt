@@ -3,21 +3,35 @@ package com.alivehealth.alive
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,35 +40,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import org.json.JSONObject
-import java.time.LocalDate
-import java.time.format.TextStyle
-import java.util.Locale
-import android.util.Log
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import com.alivehealth.alive.data.BottomNavItem
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
 
 private const val TAG="测试->MainActivity"
 
@@ -205,7 +206,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun MainScreen() {
+    fun MainScreen(){
+        Scaffold(
+            bottomBar = { BottomNavigationBar()}
+        ) {innerPadding ->
+            BodyContent(Modifier.padding(innerPadding))
+
+        }
+    }
+
+    @Composable
+    fun BodyContent(modifier: Modifier = Modifier) {
         var selectedDate by remember { mutableStateOf(LocalDate.now()) }
         var exercisePlan by remember { mutableStateOf<List<ExerciseInfo>>(listOf()) }
         var showExerciseDetails by remember{ mutableStateOf(false) }
@@ -364,6 +375,23 @@ class MainActivity : AppCompatActivity() {
 
 
 
+        }
+    }
+
+    @Composable
+    fun BottomNavigationBar(){
+        var selectedItem by remember { mutableStateOf(BottomNavItem.Home) }
+        val items = listOf(BottomNavItem.Home, BottomNavItem.Recommendations, BottomNavItem.Profile)
+
+        NavigationBar {
+            items.forEach { item ->
+                NavigationBarItem(
+                    icon = { Icon(item.icon, contentDescription = item.title) },
+                    label = { Text(item.title) },
+                    selected = selectedItem == item,
+                    onClick = { selectedItem = item }
+                )
+            }
         }
     }
 

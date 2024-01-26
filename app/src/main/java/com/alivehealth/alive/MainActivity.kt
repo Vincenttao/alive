@@ -71,6 +71,11 @@ data class DailyExercise(
     val exercises_info: List<ExerciseInfo>
 )
 
+data class ExerciseDataResult(
+    val courseInfo: CourseInfo,
+    val filteredExercises : List<ExerciseInfo>
+)
+
 data class ExerciseHistory(
     val exercise_id: Int,
     val date_completed: String,
@@ -86,11 +91,13 @@ data class CourseInfo(
     val frequency: String
 )
 
-fun parseExerciseData(jsonString: String): List<ExerciseInfo> {
+fun parseExerciseData(jsonString: String): ExerciseDataResult {
     val gson = Gson()
     val dailyExercise = gson.fromJson(jsonString, DailyExercise::class.java)
-    return dailyExercise.exercises_info.filter { it.completed == 0 } // 过滤掉已完成的锻炼
+    val filteredExercises = dailyExercise.exercises_info.filter { it.completed == 0 }
+    return ExerciseDataResult(dailyExercise.course_info, filteredExercises) // 过滤掉已完成的锻炼
 }
+
 
 
 private suspend fun fetchDailyExerciseData(context: Context, date: String, token: String): Pair<Int, String> = withContext(Dispatchers.IO) {
@@ -220,6 +227,8 @@ class MainActivity : AppCompatActivity() {
         var selectedDate by remember { mutableStateOf(LocalDate.now()) }
         var exercisePlan by remember { mutableStateOf<List<ExerciseInfo>>(listOf()) }
         var showExerciseDetails by remember{ mutableStateOf(false) }
+        var courseName by remember { mutableStateOf("")}
+        
 
         LaunchedEffect(selectedDate) {
             val sharedPreferences = getSharedPreferences(getString(R.string.SharedPreferences), MODE_PRIVATE)
@@ -230,7 +239,8 @@ class MainActivity : AppCompatActivity() {
                 if (responseCode == HttpURLConnection.HTTP_OK) {
                     // 解析responseBody并更新exercisePlan
                     val parsedData = parseExerciseData(responseBody) // 根据您的JSON格式来解析数据
-                    exercisePlan = parsedData
+                    exercisePlan = parsedData.filteredExercises
+                    courseName = parsedData.courseInfo.course_name
                     Log.d(TAG,"exercisePlan without history:$exercisePlan")
                 }
             }
@@ -278,6 +288,17 @@ class MainActivity : AppCompatActivity() {
                     .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    Text(
+                        text = "今日课程：$courseName",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    }
+
+                Row(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ){
                     val totalExercises = exercisePlan.size
                     val completedExercises = exercisePlan.count { it.completed == 1 }
                     val remainingExercises = totalExercises - completedExercises
@@ -299,7 +320,7 @@ class MainActivity : AppCompatActivity() {
                     Column(
                         modifier = Modifier.weight(1f),
                         horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
+                    ) {
                         Text("点击查看", style = MaterialTheme.typography.bodyLarge)
 
                         Icon(
@@ -311,6 +332,10 @@ class MainActivity : AppCompatActivity() {
 
                     }
                 }
+
+
+
+
             }
 
             if (showExerciseDetails) {

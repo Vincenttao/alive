@@ -3,6 +3,7 @@
     {
       "id": 1,
       "text": "你感觉你比之前步速变慢了吗？",
+      "imageResName": "question1",
       "options": [
         {
           "text": "是",
@@ -17,6 +18,7 @@
     {
       "id": 2,
       "text": "在过去6个月，体重是否下降了2-3kg或者更多？",
+      "imageResName": "question2",
       "options": [
         {
           "text": "是",
@@ -31,6 +33,7 @@
     {
       "id": 3,
       "text": "这几天，你会担心忘记东西吗？",
+      "imageResName": "question3",
       "options": [
         {
           "text": "是",
@@ -45,6 +48,7 @@
     {
       "id": 4,
       "text": "与6个月前相比，你吃硬的东西是否有困难？",
+      "imageResName": "question4",
       "options": [
         {
           "text": "是",
@@ -59,6 +63,7 @@
     {
       "id": 5,
       "text": "在喝水或者汤的时候，是否有呛咳？",
+      "imageResName": "question5",
       "options": [
         {
           "text": "是",
@@ -73,6 +78,7 @@
     {
       "id": 6,
       "text": "过去一年中，你有没有跌倒？",
+      "imageResName": "question6",
       "options": [
         {
           "text": "是",
@@ -87,6 +93,7 @@
     {
       "id": 7,
       "text": "在走路过程中，你是否害怕跌倒？",
+      "imageResName": "question7",
       "options": [
         {
           "text": "是",
@@ -102,25 +109,31 @@
   "recommendations": {
     "cognitive_course": {
       "courseId": "4",
+      "courseName": "认知课程",
       "description": "我们推荐您参加认知课程。"
     },
     "disability_prevention_course": {
       "courseId": "3",
-      "description": "我们推荐您参加失能预防课程。"
+      "courseName": "失能预防套餐",
+      "description": "我们推荐您参加失能预防套餐。"
     },
     "feeding_swallowing_exercise": {
       "courseId": "6",
+      "courseName": "喂养和吞咽锻炼套餐",
       "description": "我们推荐您参加喂养和吞咽锻炼套餐。"
     },
     "nutrition_improvement": {
       "courseId": "5",
+      "courseName": "营养改善套餐",
       "description": "我们推荐您参加营养改善套餐。"
     },
     "balance_improvement": {
       "courseId": "1",
+      "courseName": "平衡改善套餐",
       "description": "我们推荐您参加平衡改善套餐。"
     },
     "strengthening_course": {
+      "courseName": "强化套餐",
       "courseId": "2",
       "description": "我们推荐您参加强化套餐。"
     }

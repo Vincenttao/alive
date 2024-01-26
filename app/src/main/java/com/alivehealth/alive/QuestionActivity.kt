@@ -24,7 +24,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,9 +32,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.MutableLiveData
@@ -94,7 +93,6 @@ class QuestionActivity : ComponentActivity() {
         reader.close()
         Log.d(TAG, "Json data loaded: ${questionsData.questions.size} questions")
         Log.d(TAG,"Json object:$questionsData")
-        Log.d(TAG, "Loaded logic data: ${questionsData.logic.answerSequence}")
         return questionsData
     }
 
@@ -160,10 +158,12 @@ class QuestionActivity : ComponentActivity() {
 
                     if (recommendation != null) {
                         val courseId = recommendations[recommendation]?.courseId
+                        val courseName = recommendations[recommendation]?.courseName
                         Log.d(TAG, "Recommendation:$courseId")
 
                         ConfirmAddToListDialog(
                             courseId = courseId ?: "",
+                            courseName = courseName ?: "",
                             onConfirm = { newCourseId ->
                                 viewModel.addToList(this@QuestionActivity, newCourseId)
                             },
@@ -186,6 +186,8 @@ class QuestionActivity : ComponentActivity() {
 
     @Composable
     fun QuestionCard(question: QuestionItem, onOptionSelected: (Int?, String) -> Unit) {
+        val context = LocalContext.current
+        val imageResId = context.resources.getIdentifier(question.imageResName, "drawable", context.packageName)
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -193,8 +195,13 @@ class QuestionActivity : ComponentActivity() {
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
+                Image(
+                    painter = painterResource(id = imageResId),
+                    contentDescription = "Question Image",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                )
                 Text(
-
                     text = question.text,
                     style = MaterialTheme.typography.bodyLarge
                 )
@@ -224,6 +231,7 @@ class QuestionActivity : ComponentActivity() {
     @Composable
     fun ConfirmAddToListDialog(
         courseId: String,
+        courseName: String,
         onConfirm: (String) -> Unit,
         onCancel:() -> Unit
     ) {
@@ -231,7 +239,7 @@ class QuestionActivity : ComponentActivity() {
         AlertDialog(
             onDismissRequest = {/*话题关闭时处理方法*/},
             title = { Text("添加课程到每日清单") },
-            text = { Text("是否要将课程 $courseId 添加到您的每日清单中？") },
+            text = { Text("是否要将课程 $courseName 添加到您的每日清单中？") },
             confirmButton = {
                 Button(onClick = {
                     onConfirm(courseId)
@@ -287,6 +295,7 @@ data class QuestionsData(
 
 data class Recommendation(
     val courseId: String,
+    val courseName: String,
     val description: String
 )
 
@@ -297,7 +306,8 @@ data class Logic(
 data class QuestionItem(
     val id: Int,
     val text: String,
-    val options: List<Option>
+    val options: List<Option>,
+    val imageResName: String
 )
 
 data class Option(

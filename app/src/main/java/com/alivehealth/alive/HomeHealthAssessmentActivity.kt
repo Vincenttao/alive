@@ -55,13 +55,14 @@ import java.net.URL
 
 private const val TAG="测试->QuestionActivity"
 
-class QuestionActivity : ComponentActivity() {
+class HomeHealthAssessmentActivity : ComponentActivity() {
     private lateinit var recommendations: Map<String, Recommendation>
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //初始化ViewModel，加载问题
+        val jsonFileName = intent.getStringExtra("jsonFileName")?:"questions"
         val viewModel: QuestionViewModel by viewModels()
-        val questionsData = loadQuestionsFromJson()
+        val questionsData = loadQuestionsFromJson(jsonFileName)
         viewModel.setQuestions(questionsData.questions) // 假设 viewModel 只处理问题列表
         viewModel.navigationEvent.observe(this) { event ->
             event.getContentIfNotHandled()?.let {
@@ -82,9 +83,10 @@ class QuestionActivity : ComponentActivity() {
         }
     }
 
-    private fun loadQuestionsFromJson(): QuestionsData {
+    private fun loadQuestionsFromJson(jsonFileName: String): QuestionsData {
         val gson = Gson()
-        val jsonFile = resources.openRawResource(R.raw.questions) // JSON 文件位于 res/raw/questions.json
+        val resourceId = resources.getIdentifier(jsonFileName,"raw",packageName)
+        val jsonFile = resources.openRawResource(resourceId) // JSON 文件位于 res/raw/questions.json
         val reader = InputStreamReader(jsonFile)
         val questionsDataType = object : TypeToken<QuestionsData>() {}.type
         val questionsData: QuestionsData = gson.fromJson(reader, questionsDataType)
@@ -120,7 +122,7 @@ class QuestionActivity : ComponentActivity() {
             ) {
                 Spacer(modifier = Modifier.height(50.dp))
                 Text(
-                    text = "Alive Health健康检测",
+                    text = "居家健康综合评估",
                     style = TextStyle(
                         color = Color.White,
                         fontSize = 36.sp // 标题大小
@@ -162,7 +164,7 @@ class QuestionActivity : ComponentActivity() {
                             courseId = courseId ?: "",
                             courseName = courseName ?: "",
                             onConfirm = { newCourseId ->
-                                viewModel.addToList(this@QuestionActivity, newCourseId)
+                                viewModel.addToList(this@HomeHealthAssessmentActivity, newCourseId)
                             },
                             onCancel = {
                                 navigateToMainActivity()
@@ -235,7 +237,7 @@ class QuestionActivity : ComponentActivity() {
         // 使用对话框组件询问用户
         AlertDialog(
             onDismissRequest = {/*话题关闭时处理方法*/},
-            title = { Text("添加课程到每日清单") },
+            title = { Text("添加$courseName 课程") },
             text = { Text("是否要将课程 $courseName 添加到您的每日清单中？") },
             confirmButton = {
                 Button(onClick = {
@@ -263,7 +265,7 @@ class QuestionActivity : ComponentActivity() {
             confirmButton = {
                 Button(onClick = {
                     Log.d(TAG,"onClick")
-                    viewModel.overwriteCourse(this@QuestionActivity)
+                    viewModel.overwriteCourse(this@HomeHealthAssessmentActivity)
                     viewModel.showDialog = false
                 }) {
                     Text("覆盖")

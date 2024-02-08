@@ -54,9 +54,14 @@
             android:exported="false"
             android:label="RestActivity" />
         <activity
-            android:name=".QuestionActivity"
+            android:name=".HomeHealthAssessmentActivity"
             android:exported="false"
             android:label="QuestionActivity" />
+        <activity android:name="MuscleStrengthAssessmentActivity"
+            android:exported="false"
+            android:label="MuscleStrengthAssessmentActivity"
+            />
+
         <activity
             android:name=".SplashActivity"
             android:exported="true"

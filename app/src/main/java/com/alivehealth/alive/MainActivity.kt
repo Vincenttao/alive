@@ -12,7 +12,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -40,7 +39,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.constraintlayout.widget.ConstraintLayout
 import com.alivehealth.alive.data.BottomNavItem
 import com.alivehealth.alive.data.DailyExercise
 import com.alivehealth.alive.data.DailyStatistics
@@ -345,12 +343,13 @@ class MainActivity : AppCompatActivity() {
             FourGridScreen { destination ->
                 when (destination) {
                     "HomeHealthAssessment" -> {
-                        val intent = Intent(this@MainActivity, QuestionActivity::class.java)
+                        val intent = Intent(this@MainActivity, HomeHealthAssessmentActivity::class.java)
+                        intent.putExtra("jsonFileName","questions")
                         startActivity(intent)
                     }
 
                     "MuscleStrengthAssessment" -> {
-                        val intent = Intent(this@MainActivity, QuestionActivity::class.java)
+                        val intent = Intent(this@MainActivity, MuscleStrengthAssessmentActivity::class.java)
                         // 你可以通过Intent传递额外的数据来区分不同的行为
                         // intent.putExtra("EXTRA_DATA", "Some data")
                         startActivity(intent)

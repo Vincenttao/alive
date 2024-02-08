@@ -36,6 +36,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        dataBinding = true
         compose = true
     }
 
@@ -47,7 +48,7 @@ android {
 }
 
 dependencies {
-    val composeVersion = "2024.01.00"
+    val composeVersion = "2024.02.00"
     // 使用Compose BOM来统一管理版本
     implementation(platform("androidx.compose:compose-bom:$composeVersion"))
 
@@ -56,7 +57,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.foundation:foundation:1.6.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    implementation("androidx.compose.ui:ui-test-junit4:1.6.1")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     // 其他Compose集成
@@ -82,9 +83,9 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
     // 测试依赖项
-    //testImplementation("junit:junit:4.13.2")
+    testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")
 
     // UI自定义
     implementation("com.mikhaellopez:circularprogressbar:3.1.0")

@@ -6,10 +6,11 @@ pluginManagement {
     }
 }
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
-        google()
-        mavenCentral()
+        google() // 添加Google Maven仓库
+        mavenCentral() // 添加Maven Central仓库
+        // 这里可以根据需要添加更多的仓库
     }
 }
 

@@ -47,6 +47,8 @@
             android:name=".RegisterActivity"
             android:exported="false"
             android:label="注册" />
+
+
         <activity
             android:name=".RestActivity"
             android:exported="false"

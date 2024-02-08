@@ -82,8 +82,6 @@ class QuestionActivity : ComponentActivity() {
         }
     }
 
-
-
     private fun loadQuestionsFromJson(): QuestionsData {
         val gson = Gson()
         val jsonFile = resources.openRawResource(R.raw.questions) // JSON 文件位于 res/raw/questions.json
@@ -100,7 +98,6 @@ class QuestionActivity : ComponentActivity() {
         startActivity(Intent(this, MainActivity::class.java))
         finish()
     }
-
 
     @Composable
     fun QuestionScreen(viewModel: QuestionViewModel = viewModel(), logic: Map<String, String>) {
@@ -352,9 +349,6 @@ class QuestionViewModel : ViewModel() {
         showDialog = true
         tempCourseId = courseId
     }
-
-
-
 
     fun setQuestions(questions: List<QuestionItem>) {
         questionList = questions

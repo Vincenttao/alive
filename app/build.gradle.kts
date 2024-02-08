@@ -1,6 +1,6 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    kotlin("android")
 }
 
 android {
@@ -47,45 +47,28 @@ android {
 }
 
 dependencies {
+    val composeVersion = "2024.01.00"
+    // 使用Compose BOM来统一管理版本
+    implementation(platform("androidx.compose:compose-bom:$composeVersion"))
 
-    val composeBom = platform("androidx.compose:compose-bom:2023.10.01")
-    implementation(composeBom)
-    androidTestImplementation(composeBom)
-    implementation("androidx.compose.material3:material3:1.1.2")
-    // Android Studio Preview support
-
+    // Compose基础库
+    implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.foundation:foundation:1.6.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
-    implementation("androidx.compose.ui:ui-tooling")
-    implementation("androidx.compose.ui:ui:1.5.4")
-
-    implementation("androidx.compose.material:material-icons-core-android:1.5.4")
-    implementation("androidx.compose.material:material-icons-extended:1.5.4")
-
-    // UI Tests
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
-
-    // Optional - Integration with activities
-    implementation("androidx.activity:activity-compose:1.8.2")
-    // Optional - Integration with ViewModels
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
-
-    // Optional - Integration with LiveData
+    // 其他Compose集成
+    implementation("androidx.activity:activity-compose")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx")
     implementation("androidx.compose.runtime:runtime-livedata")
-    // Optional - Integration with RxJava
     implementation("androidx.compose.runtime:runtime-rxjava2")
 
-
-    //Json库
-    implementation("com.google.code.gson:gson:2.8.9")
-
-    //视频播放
+    // 通用Android库
+    implementation("com.google.code.gson:gson:2.10.1")
     implementation("com.google.android.exoplayer:exoplayer:2.19.1")
-
-
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
@@ -95,13 +78,21 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite:2.5.0")
     implementation("org.tensorflow:tensorflow-lite-gpu:2.5.0")
     implementation("org.tensorflow:tensorflow-lite-support:0.3.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
-
-    testImplementation("junit:junit:4.13.2")
+    // 测试依赖项
+    //testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 
+    // UI自定义
     implementation("com.mikhaellopez:circularprogressbar:3.1.0")
 
+    // For Jetpack Compose UI components.
+    implementation("com.patrykandpatrick.vico:compose:1.13.1")
+    implementation("com.patrykandpatrick.vico:compose-m2:1.13.1")
+    implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")
+    implementation("com.patrykandpatrick.vico:core:1.13.1")
+    implementation("com.patrykandpatrick.vico:views:1.13.1")
 }

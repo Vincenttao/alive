@@ -221,7 +221,7 @@ class PoseDetectionManager(
                 Log.e(TAG,"Token not found")
                 //return@launch
             }
-            val averagePoseScore = if (scoreCount > 0) totalScore / scoreCount else 0f
+            val averagePoseScore = if (scoreCount > 0) (totalScore * 100.0f)/scoreCount else 0f
             val durationTime = ((System.currentTimeMillis() - activityStartTime) / 1000).toInt()
             val dateCompleted = SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
                 Locale.getDefault()).format(Date())
